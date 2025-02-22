@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Globalization;
 using System.Numerics;
 using System.Runtime.InteropServices;
@@ -951,7 +951,7 @@ public sealed class ChatLogWindow : Window
 
                     var reason = target.Reason;
                     var world = Sheets.WorldSheet.GetRow(target.World);
-                    if (world is { IsPublic: true })
+                    if (world is { IsPublic: true } || world.RowId > 1000)
                     {
                         if (reason == TellReason.Reply && GameFunctions.GameFunctions.GetFriends().Any(friend => friend.ContentId == target.ContentId))
                             reason = TellReason.Friend;

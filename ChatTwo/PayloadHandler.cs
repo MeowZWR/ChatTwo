@@ -527,7 +527,7 @@ public sealed class PayloadHandler
                 world = Plugin.ClientState.LocalPlayer.HomeWorld;
 
         var name = new List<Chunk> { new TextChunk(ChunkSource.None, null, player.PlayerName) };
-        if (world.Value.IsPublic)
+        if (world.Value.IsPublic || world.RowId > 1000)
         {
             name.AddRange(new Chunk[]
             {
@@ -546,7 +546,7 @@ public sealed class PayloadHandler
             if (!Sheets.IsInForay())
             {
                 LogWindow.Chat = $"/tell {player.PlayerName}";
-                if (world.Value.IsPublic)
+                if (world.Value.IsPublic || world.RowId > 1000)
                     LogWindow.Chat += $"@{world.Value.Name}";
 
                 LogWindow.Chat += " ";
@@ -559,7 +559,7 @@ public sealed class PayloadHandler
             LogWindow.Activate = true;
         }
 
-        if (world.Value.IsPublic)
+        if (world.Value.IsPublic || world.RowId > 1000)
         {
             var party = Plugin.PartyList;
             var leader = (ulong?) party[(int) party.PartyLeaderIndex]?.ContentId;
@@ -654,7 +654,7 @@ public sealed class PayloadHandler
             if (character.Name.TextValue != payload.PlayerName)
                 continue;
 
-            if (payload.World.Value.IsPublic && character.HomeWorld.RowId != payload.World.RowId)
+            if (payload.World.Value.IsPublic && character.HomeWorld.RowId != payload.World.RowId && payload.World.RowId > 1000)
                 continue;
 
             return character;
