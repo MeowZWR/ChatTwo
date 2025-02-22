@@ -654,7 +654,7 @@ public sealed class PayloadHandler
             if (character.Name.TextValue != payload.PlayerName)
                 continue;
 
-            if (payload.World.Value.IsPublic && character.HomeWorld.RowId != payload.World.RowId && payload.World.RowId > 1000)
+            if ((payload.World.Value.IsPublic || payload.World.RowId > 1000) && character.HomeWorld.RowId != payload.World.RowId)
                 continue;
 
             return character;
