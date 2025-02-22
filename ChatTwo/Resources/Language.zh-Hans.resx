@@ -541,6 +541,9 @@
   <data name="Options_Tabs_Opacity">
     <value>窗口不透明度</value>
   </data>
+  <data name="Options_Tabs_IndependentHide">
+    <value>使用与主窗口不同的隐藏条件</value>
+  </data>
   <data name="Options_FontsEnabled">
     <value>启用自定义字体</value>
   </data>
@@ -676,6 +679,9 @@
   <data name="Context_InviteToParty">
     <value>发送组队邀请</value>
   </data>
+  <data name="Context_BlockFunctions">
+    <value>阻止功能</value>
+  </data>
   <data name="Context_InviteToParty_SameWorld">
     <value>同服</value>
   </data>
@@ -693,6 +699,12 @@
   </data>
   <data name="Context_AddToBlacklist">
     <value>加入到黑名单</value>
+  </data>
+  <data name="Context_AddToMuteList">
+    <value>加入到屏蔽名单</value>
+  </data>
+  <data name="Context_AddToTermsFilter">
+    <value>记录屏蔽词</value>
   </data>
   <data name="Context_InviteToNoviceNetwork">
     <value>邀请到新人频道中</value>
