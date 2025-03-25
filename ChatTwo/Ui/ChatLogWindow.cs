@@ -1568,10 +1568,33 @@ public sealed class ChatLogWindow : Window
 
         // Set the cursor pos to the user selected
         if (Plugin.InputPreview.SelectedCursorPos != -1)
-            ptr.CursorPos = Plugin.InputPreview.SelectedCursorPos;
+        {
+            var bytePos = GetBytePosFromCharPos(Chat, Plugin.InputPreview.SelectedCursorPos);
+            ptr.CursorPos = bytePos;
+            data->SelectionStart = data->SelectionEnd = bytePos; 
+        }
         Plugin.InputPreview.SelectedCursorPos = -1;
 
-        CursorPos = ptr.CursorPos;
+        // Safely calculate cursor position
+        try
+        {
+            if (ptr.Buf != IntPtr.Zero && data->BufTextLen > 0)
+            {
+                // Use input buffer to calculate
+                CursorPos = Encoding.UTF8.GetCharCount((byte*)ptr.Buf, data->BufTextLen);
+            }
+            else
+            {
+                // Fall back to Chat string when buffer isn't available
+                CursorPos = GetCharPosFromBytePos(Chat, ptr.CursorPos);
+            }
+        }
+        catch
+        {
+            // Fallback in case of any encoding errors
+            CursorPos = Chat.Length;
+        }
+
         if (data->EventFlag == ImGuiInputTextFlags.CallbackCompletion)
         {
             if (ptr.CursorPos == 0)
@@ -1613,7 +1636,8 @@ public sealed class ChatLogWindow : Window
         if (Activate)
         {
             Activate = false;
-            data->CursorPos = ActivatePos > -1 ? ActivatePos : Chat.Length;
+            var bytePos = Encoding.UTF8.GetBytes(Chat.Substring(0, ActivatePos > -1 ? ActivatePos : Chat.Length)).Length;
+            data->CursorPos = bytePos;
             data->SelectionStart = data->SelectionEnd = data->CursorPos;
             ActivatePos = -1;
         }
@@ -1814,5 +1838,42 @@ public sealed class ChatLogWindow : Window
     {
         var hashCode = $"{Salt}{playerName}{worldId}".GetHashCode();
         return $"Player {hashCode:X8}";
+    }
+
+    private int GetCharPosFromBytePos(string text, int bytePos)
+    {
+        if (string.IsNullOrEmpty(text) || bytePos <= 0)
+            return 0;
+
+        try
+        {
+            var bytes = Encoding.UTF8.GetBytes(text);
+            if (bytePos >= bytes.Length)
+                return text.Length;
+
+            return Encoding.UTF8.GetCharCount(bytes, 0, bytePos);
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+
+    private int GetBytePosFromCharPos(string text, int charPos)
+    {
+        if (string.IsNullOrEmpty(text) || charPos <= 0)
+            return 0;
+
+        try
+        {
+            if (charPos >= text.Length)
+                return Encoding.UTF8.GetByteCount(text);
+
+            return Encoding.UTF8.GetByteCount(text.Substring(0, charPos));
+        }
+        catch
+        {
+            return 0;
+        }
     }
 }

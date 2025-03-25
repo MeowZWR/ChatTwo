@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.Numerics;
 using ChatTwo.Code;
@@ -238,12 +238,12 @@ public class DbViewer : Window
     {
         if (SimpleSearchTerm == "")
         {
-            Filtered = new ConcurrentStack<Message>(Messages.Reverse().OrderByDescending(m => m.Date));
+            Filtered = new ConcurrentStack<Message>(Messages.OrderByDescending(m => m.Date));
             return;
         }
 
         Filtered = new ConcurrentStack<Message>(
-            Messages.Reverse().Where(m =>
+            Messages.Where(m =>
                 ChunkUtil.ToRawString(m.Sender).Contains(SimpleSearchTerm, StringComparison.InvariantCultureIgnoreCase) ||
                 ChunkUtil.ToRawString(m.Content).Contains(SimpleSearchTerm, StringComparison.InvariantCultureIgnoreCase)
                 ).OrderByDescending(m => m.Date));
