@@ -277,16 +277,55 @@ public sealed class PayloadHandler
         var atkPos = new Vector2(component.ScreenX, component.ScreenY);
         var atkSize = new Vector2(component.GetWidth() * component.ScaleX, component.GetHeight() * component.GetScaleY());
 
-        var chatRect = MathUtil.Rectangle.FromPosAndSize(LogWindow.LastWindowPos, LogWindow.LastWindowSize);
-        var addonRect = MathUtil.Rectangle.FromPosAndSize(atkPos, atkSize);
+        var chatRect = new MathUtil.Rectangle(LogWindow.LastWindowPos, LogWindow.LastWindowSize);
+        var addonRect = new MathUtil.Rectangle(atkPos, atkSize);
 
-        if (!MathUtil.CheckRectOverlap(chatRect, addonRect))
+        if (!chatRect.HasOverlap(addonRect))
             return;
 
         var viewportSize = ImGuiHelpers.MainViewport.Size;
         var isLeft = chatRect.SizeX < viewportSize.X / 2;
         var isTop = chatRect.SizeY < viewportSize.Y / 2;
 
+        var mousePos = ImGui.GetMousePos();
+
+        // addon spawned left of mouse cursor
+        if (addonRect.X < mousePos.X)
+        {
+            if (isLeft)
+                addonRect.X = (short)mousePos.X + 5;
+        }
+        else
+        {
+            if (!isLeft)
+                addonRect.X = Math.Max(0, (short)mousePos.X - 5 - addonRect.Width);
+        }
+
+        if (!chatRect.HasOverlap(addonRect))
+        {
+            atk->SetPosition((short) addonRect.X, (short) addonRect.Y);
+            return;
+        }
+
+        // addon spawned above mouse cursor
+        if (addonRect.Y < mousePos.Y)
+        {
+            if (isTop)
+                addonRect.Y = (short)mousePos.Y + 5;
+        }
+        else
+        {
+            if (!isTop)
+                addonRect.Y = Math.Max(0, (short)mousePos.Y - 5 - addonRect.Height); // prevent it going below 0
+        }
+
+        if (!chatRect.HasOverlap(addonRect))
+        {
+            atk->SetPosition((short) addonRect.X, (short) addonRect.Y);
+            return;
+        }
+
+        // Spawning right/bottom of mouse cursor didn't solve the overlap, so we spawn it next to the chat
         var x = isLeft ? chatRect.SizeX : LogWindow.LastWindowPos.X - atkSize.X;
         var y = Math.Clamp(chatRect.SizeY - atkSize.Y, 0, float.MaxValue);
         y -= isTop ? 0 : Plugin.Config.TooltipOffset; // offset to prevent cut-off on the bottom
@@ -535,11 +574,10 @@ public sealed class PayloadHandler
         var name = new List<Chunk> { new TextChunk(ChunkSource.None, null, player.PlayerName) };
         if (world.Value.IsPublic || world.RowId > 1000)
         {
-            name.AddRange(new Chunk[]
-            {
+            name.AddRange([
                 new IconChunk(ChunkSource.None, null, BitmapFontIcon.CrossWorld),
-                new TextChunk(ChunkSource.None, null, world.Value.Name.ExtractText()),
-            });
+                new TextChunk(ChunkSource.None, null, world.Value.Name.ExtractText())
+            ]);
         }
 
         LogWindow.DrawChunks(name, false);
@@ -548,7 +586,7 @@ public sealed class PayloadHandler
         var validContentId = chunk.Message?.ContentId is not (null or 0);
         if (ImGui.Selectable(Language.Context_SendTell))
         {
-            // Eureka and Bozja need special handling as tells work different
+            // Eureka, Bozja and Occult need special handling as tells work different
             if (!Sheets.IsInForay())
             {
                 LogWindow.Chat = $"/tell {player.PlayerName}";
@@ -573,7 +611,7 @@ public sealed class PayloadHandler
             var member = party.FirstOrDefault(member => member.Name.TextValue == player.PlayerName && member.World.RowId == world.RowId);
             var isInParty = member != null;
             var inInstance = GameFunctions.GameFunctions.IsInInstance();
-            var inPartyInstance = Sheets.TerritorySheet.GetRow(Plugin.ClientState.TerritoryType).TerritoryIntendedUse.RowId is (41 or 47 or 48 or 52 or 53);
+            var inPartyInstance = Sheets.TerritorySheet.GetRow(Plugin.ClientState.TerritoryType).TerritoryIntendedUse.RowId is (41 or 47 or 48 or 52 or 53 or 61);
             if (isLeader)
             {
                 if (!isInParty)
