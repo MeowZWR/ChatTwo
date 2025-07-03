@@ -701,7 +701,7 @@
     <value>加入到黑名单</value>
   </data>
   <data name="Context_AddToMuteList">
-    <value>加入到屏蔽名单</value>
+    <value>登记到屏蔽名单</value>
   </data>
   <data name="Context_AddToTermsFilter">
     <value>记录屏蔽词</value>
@@ -960,6 +960,12 @@
   </data>
   <data name="Options_CollapseDuplicateMessages_Description">
     <value>折叠连续重复的消息并显示折叠数量。</value>
+  </data>
+  <data name="Options_CollapseDuplicateMsgUniqueLink_Name">
+    <value>Keep unique links seperate</value>
+  </data>
+  <data name="Options_CollapseDuplicateMsgUniqueLink_Description">
+    <value>Don't collapse messages if they link to different things with the same text.</value>
   </data>
   <data name="Options_Tabs_ExtraChatChannels">
     <value>ExtraChat频道</value>
