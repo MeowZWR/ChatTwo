@@ -962,10 +962,10 @@
     <value>折叠连续重复的消息并显示折叠数量。</value>
   </data>
   <data name="Options_CollapseDuplicateMsgUniqueLink_Name">
-    <value>Keep unique links seperate</value>
+    <value>保持唯一链接独立</value>
   </data>
   <data name="Options_CollapseDuplicateMsgUniqueLink_Description">
-    <value>Don't collapse messages if they link to different things with the same text.</value>
+    <value>当消息文本相同但链接指向不同内容时，不合并这些消息。</value>
   </data>
   <data name="Options_Tabs_ExtraChatChannels">
     <value>ExtraChat频道</value>
