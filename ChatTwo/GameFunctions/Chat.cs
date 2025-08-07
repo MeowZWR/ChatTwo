@@ -183,7 +183,7 @@ internal sealed unsafe class Chat : IDisposable
                     return;
 
                 var c = chars[0];
-                if (c != '\0' && !char.IsControl(c))
+                if (c != '\0' && (c == '/' || !char.IsControl(c)))
                     input = c.ToString();
 
                 try
@@ -528,6 +528,9 @@ internal sealed unsafe class Chat : IDisposable
 
     internal bool IsCharValid(char c)
     {
+        if (c == '/')
+            return true;
+            
         var uC = Utf8String.FromString(c.ToString());
 
         uC->SanitizeString((AllowedEntities) 0x27F);
