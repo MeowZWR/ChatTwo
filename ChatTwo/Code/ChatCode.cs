@@ -14,9 +14,20 @@ internal class ChatCode
     internal ChatCode(ushort raw)
     {
         Raw = raw;
-        Type = (ChatType) (Raw & Clear7);
-        Source = SourceFrom(11);
-        Target = SourceFrom(7);
+        // For custom ChatTwo types (>= 1000), do not apply the 7-bit mask.
+        // The default 7-bit masking is only valid for native XivChatType values.
+        if (raw >= 1000)
+        {
+            Type = (ChatType)raw;
+            Source = 0;
+            Target = 0;
+        }
+        else
+        {
+            Type = (ChatType)(Raw & Clear7);
+            Source = SourceFrom(11);
+            Target = SourceFrom(7);
+        }
     }
 
     internal ChatType Parent() => Type switch
@@ -137,6 +148,14 @@ internal class ChatCode
             case ChatType.ExtraChatLinkshell6:
             case ChatType.ExtraChatLinkshell7:
             case ChatType.ExtraChatLinkshell8:
+            case ChatType.MareLinkshell1:
+            case ChatType.MareLinkshell2:
+            case ChatType.MareLinkshell3:
+            case ChatType.MareLinkshell4:
+            case ChatType.MareLinkshell5:
+            case ChatType.MareLinkshell6:
+            case ChatType.MareLinkshell7:
+            case ChatType.MareLinkshell8:
                 return true;
             default:
                 return false;

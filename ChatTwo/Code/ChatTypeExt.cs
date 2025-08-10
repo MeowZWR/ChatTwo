@@ -43,6 +43,14 @@ internal static class ChatTypeExt
             ChatType.Linkshell6,
             ChatType.Linkshell7,
             ChatType.Linkshell8,
+            ChatType.MareLinkshell1,
+            ChatType.MareLinkshell2,
+            ChatType.MareLinkshell3,
+            ChatType.MareLinkshell4,
+            ChatType.MareLinkshell5,
+            ChatType.MareLinkshell6,
+            ChatType.MareLinkshell7,
+            ChatType.MareLinkshell8,
             ChatType.NoviceNetwork,
             ChatType.StandardEmote,
             ChatType.CustomEmote
@@ -184,6 +192,14 @@ internal static class ChatTypeExt
             ChatType.ExtraChatLinkshell6 => Language.ChatType_ExtraChatLinkshell6,
             ChatType.ExtraChatLinkshell7 => Language.ChatType_ExtraChatLinkshell7,
             ChatType.ExtraChatLinkshell8 => Language.ChatType_ExtraChatLinkshell8,
+            ChatType.MareLinkshell1 => "同步贝 [1]",
+            ChatType.MareLinkshell2 => "同步贝 [2]",
+            ChatType.MareLinkshell3 => "同步贝 [3]",
+            ChatType.MareLinkshell4 => "同步贝 [4]",
+            ChatType.MareLinkshell5 => "同步贝 [5]",
+            ChatType.MareLinkshell6 => "同步贝 [6]",
+            ChatType.MareLinkshell7 => "同步贝 [7]",
+            ChatType.MareLinkshell8 => "同步贝 [8]",
             _ => type.ToString(),
         };
     }
@@ -244,6 +260,15 @@ internal static class ChatTypeExt
             case ChatType.GmLinkshell7:
             case ChatType.GmLinkshell8:
                 return ColourUtil.ComponentsToRgba(212, 255, 125);
+            case ChatType.MareLinkshell1:
+            case ChatType.MareLinkshell2:
+            case ChatType.MareLinkshell3:
+            case ChatType.MareLinkshell4:
+            case ChatType.MareLinkshell5:
+            case ChatType.MareLinkshell6:
+            case ChatType.MareLinkshell7:
+            case ChatType.MareLinkshell8:
+                return ColourUtil.ComponentsToRgba(255, 112, 146);
             case ChatType.StandardEmote:
                 return ColourUtil.ComponentsToRgba(186, 255, 240);
             case ChatType.CustomEmote:
@@ -335,6 +360,14 @@ internal static class ChatTypeExt
         ChatType.Linkshell6 => InputChannel.Linkshell6,
         ChatType.Linkshell7 => InputChannel.Linkshell7,
         ChatType.Linkshell8 => InputChannel.Linkshell8,
+        ChatType.MareLinkshell1 => InputChannel.MareLinkshell1,
+        ChatType.MareLinkshell2 => InputChannel.MareLinkshell2,
+        ChatType.MareLinkshell3 => InputChannel.MareLinkshell3,
+        ChatType.MareLinkshell4 => InputChannel.MareLinkshell4,
+        ChatType.MareLinkshell5 => InputChannel.MareLinkshell5,
+        ChatType.MareLinkshell6 => InputChannel.MareLinkshell6,
+        ChatType.MareLinkshell7 => InputChannel.MareLinkshell7,
+        ChatType.MareLinkshell8 => InputChannel.MareLinkshell8,
         _ => null,
     };
 
@@ -368,6 +401,19 @@ internal static class ChatTypeExt
         ChatType.ExtraChatLinkshell6 => true,
         ChatType.ExtraChatLinkshell7 => true,
         ChatType.ExtraChatLinkshell8 => true,
+        _ => false,
+    };
+
+    internal static bool IsMareLinkshell(this ChatType type) => type switch
+    {
+        ChatType.MareLinkshell1 => true,
+        ChatType.MareLinkshell2 => true,
+        ChatType.MareLinkshell3 => true,
+        ChatType.MareLinkshell4 => true,
+        ChatType.MareLinkshell5 => true,
+        ChatType.MareLinkshell6 => true,
+        ChatType.MareLinkshell7 => true,
+        ChatType.MareLinkshell8 => true,
         _ => false,
     };
 

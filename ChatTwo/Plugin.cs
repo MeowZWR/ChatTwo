@@ -56,6 +56,7 @@ public sealed class Plugin : IDalamudPlugin
     internal MessageManager MessageManager { get; }
     internal IpcManager Ipc { get; }
     internal ExtraChat ExtraChat { get; }
+    internal Ipc.MareChat? MareChat { get; }
     internal FontManager FontManager { get; }
 
     internal ServerCore ServerCore { get; }
@@ -96,8 +97,9 @@ public sealed class Plugin : IDalamudPlugin
 
             Commands = new Commands(this);
             Functions = new GameFunctions.GameFunctions(this);
-            Ipc = new IpcManager();
+            Ipc = new IpcManager(this);
             ExtraChat = new ExtraChat(this);
+            MareChat = new Ipc.MareChat(this);
             FontManager = new FontManager();
 
             ChatLogWindow = new ChatLogWindow(this);
@@ -182,6 +184,7 @@ public sealed class Plugin : IDalamudPlugin
         SeStringDebugger?.Dispose();
 
         ExtraChat?.Dispose();
+        MareChat?.Dispose();
         Ipc?.Dispose();
         MessageManager?.DisposeAsync().AsTask().Wait();
         Functions?.Dispose();

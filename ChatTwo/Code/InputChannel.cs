@@ -41,5 +41,15 @@ internal enum InputChannel : uint
     ExtraChatLinkshell7 = 1007,
     ExtraChatLinkshell8 = 1008,
 
+    // Mare custom linkshell channels (external, IPC-based)
+    MareLinkshell1 = 1101,
+    MareLinkshell2 = 1102,
+    MareLinkshell3 = 1103,
+    MareLinkshell4 = 1104,
+    MareLinkshell5 = 1105,
+    MareLinkshell6 = 1106,
+    MareLinkshell7 = 1107,
+    MareLinkshell8 = 1108,
+
     Invalid = 9999,
 }

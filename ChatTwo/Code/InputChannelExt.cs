@@ -40,6 +40,14 @@ internal static class InputChannelExt
         InputChannel.ExtraChatLinkshell6 => ChatType.ExtraChatLinkshell6,
         InputChannel.ExtraChatLinkshell7 => ChatType.ExtraChatLinkshell7,
         InputChannel.ExtraChatLinkshell8 => ChatType.ExtraChatLinkshell8,
+        InputChannel.MareLinkshell1 => ChatType.MareLinkshell1,
+        InputChannel.MareLinkshell2 => ChatType.MareLinkshell2,
+        InputChannel.MareLinkshell3 => ChatType.MareLinkshell3,
+        InputChannel.MareLinkshell4 => ChatType.MareLinkshell4,
+        InputChannel.MareLinkshell5 => ChatType.MareLinkshell5,
+        InputChannel.MareLinkshell6 => ChatType.MareLinkshell6,
+        InputChannel.MareLinkshell7 => ChatType.MareLinkshell7,
+        InputChannel.MareLinkshell8 => ChatType.MareLinkshell8,
         InputChannel.Invalid => ChatType.Echo,
         _ => throw new ArgumentOutOfRangeException(nameof(input), input, null),
     };
@@ -70,6 +78,14 @@ internal static class InputChannelExt
         InputChannel.ExtraChatLinkshell6 => 5,
         InputChannel.ExtraChatLinkshell7 => 6,
         InputChannel.ExtraChatLinkshell8 => 7,
+        InputChannel.MareLinkshell1 => 0,
+        InputChannel.MareLinkshell2 => 1,
+        InputChannel.MareLinkshell3 => 2,
+        InputChannel.MareLinkshell4 => 3,
+        InputChannel.MareLinkshell5 => 4,
+        InputChannel.MareLinkshell6 => 5,
+        InputChannel.MareLinkshell7 => 6,
+        InputChannel.MareLinkshell8 => 7,
         _ => uint.MaxValue,
     };
 
@@ -108,6 +124,14 @@ internal static class InputChannelExt
         InputChannel.ExtraChatLinkshell6 => "/ecl6",
         InputChannel.ExtraChatLinkshell7 => "/ecl7",
         InputChannel.ExtraChatLinkshell8 => "/ecl8",
+        InputChannel.MareLinkshell1 => "/mare1",
+        InputChannel.MareLinkshell2 => "/mare2",
+        InputChannel.MareLinkshell3 => "/mare3",
+        InputChannel.MareLinkshell4 => "/mare4",
+        InputChannel.MareLinkshell5 => "/mare5",
+        InputChannel.MareLinkshell6 => "/mare6",
+        InputChannel.MareLinkshell7 => "/mare7",
+        InputChannel.MareLinkshell8 => "/mare8",
         InputChannel.Invalid => "/e",
         _ => "/e",
     };
@@ -187,6 +211,19 @@ internal static class InputChannelExt
         InputChannel.ExtraChatLinkshell6 => true,
         InputChannel.ExtraChatLinkshell7 => true,
         InputChannel.ExtraChatLinkshell8 => true,
+        _ => false,
+    };
+
+    internal static bool IsMareLinkshell(this InputChannel channel) => channel switch
+    {
+        InputChannel.MareLinkshell1 => true,
+        InputChannel.MareLinkshell2 => true,
+        InputChannel.MareLinkshell3 => true,
+        InputChannel.MareLinkshell4 => true,
+        InputChannel.MareLinkshell5 => true,
+        InputChannel.MareLinkshell6 => true,
+        InputChannel.MareLinkshell7 => true,
+        InputChannel.MareLinkshell8 => true,
         _ => false,
     };
 

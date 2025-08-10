@@ -749,6 +749,16 @@ public sealed class ChatLogWindow : Window
                 if (!Plugin.CommandManager.Commands.ContainsKey(channel.Prefix()))
                     continue;
 
+            // For Mare linkshells we will only show them if Mare IPC exposes a name
+            if (channel.IsMareLinkshell())
+            {
+                var idx = channel.LinkshellIndex();
+                var mareName = Plugin.MareChat?.GetChannelName((int)idx);
+                if (string.IsNullOrWhiteSpace(mareName))
+                    continue;
+                name = $"\uE044 [{idx + 1}]: {mareName}";
+            }
+
             channels.Add(name, channel);
         }
 
@@ -792,6 +802,12 @@ public sealed class ChatLogWindow : Window
                     var cwlsName = Plugin.Functions.Chat.GetCrossLinkshellName(idx);
                     name = $"CWLS [{idx + 1}]: {cwlsName}";
                 }
+                else if (activeTab.CurrentChannel.TempChannel.IsMareLinkshell())
+                {
+                    var idx = (int)activeTab.CurrentChannel.TempChannel.LinkshellIndex();
+                    var mareName = Plugin.MareChat?.GetChannelName(idx) ?? "";
+                    name = string.IsNullOrEmpty(mareName) ? $"\uE044 [{idx + 1}]" : $"\uE044 [{idx + 1}]: {mareName}";
+                }
                 else
                 {
                     name = activeTab.CurrentChannel.TempChannel.ToChatType().Name();
@@ -811,7 +827,17 @@ public sealed class ChatLogWindow : Window
             //
             // We don't call channel.ToChatType().Name() as it has the
             // long name as used in the settings window.
-            channelNameChunks = [new TextChunk(ChunkSource.None, null, channel.IsExtraChatLinkshell() ? $"ECLS [{channel.LinkshellIndex() + 1}]" : channel.ToChatType().Name())];
+            if (channel.IsExtraChatLinkshell())
+                channelNameChunks = [new TextChunk(ChunkSource.None, null, $"ECLS [{channel.LinkshellIndex() + 1}]")];
+            else if (channel.IsMareLinkshell())
+            {
+                var idx = (int)channel.LinkshellIndex();
+                var mareName = Plugin.MareChat?.GetChannelName(idx) ?? "";
+                var text = string.IsNullOrEmpty(mareName) ? $"\uE044 [{idx + 1}]" : $"\uE044 [{idx + 1}]: {mareName}";
+                channelNameChunks = [new TextChunk(ChunkSource.None, null, text)];
+            }
+            else
+                channelNameChunks = [new TextChunk(ChunkSource.None, null, channel.ToChatType().Name())];
         }
         else if (Plugin.ExtraChat.ChannelOverride is var (overrideName, _))
         {
@@ -848,9 +874,19 @@ public sealed class ChatLogWindow : Window
         }
         else
         {
-            channelNameChunks = activeTab.CurrentChannel.Name.Count > 0
-                ? activeTab.CurrentChannel.Name.ToArray()
-                : [new TextChunk(ChunkSource.None, null, activeTab.CurrentChannel.Channel.ToChatType().Name())];
+            if (activeTab.CurrentChannel.Channel.IsMareLinkshell())
+            {
+                var idx = (int)activeTab.CurrentChannel.Channel.LinkshellIndex();
+                var mareName = Plugin.MareChat?.GetChannelName(idx) ?? "";
+                var nm = string.IsNullOrEmpty(mareName) ? $"\uE044 [{idx + 1}]" : $"\uE044 [{idx + 1}]: {mareName}";
+                channelNameChunks = [new TextChunk(ChunkSource.None, null, nm)];
+            }
+            else
+            {
+                channelNameChunks = activeTab.CurrentChannel.Name.Count > 0
+                    ? activeTab.CurrentChannel.Name.ToArray()
+                    : [new TextChunk(ChunkSource.None, null, activeTab.CurrentChannel.Channel.ToChatType().Name())];
+            }
         }
 
         return channelNameChunks;
@@ -885,8 +921,17 @@ public sealed class ChatLogWindow : Window
             return;
         }
 
+        // Mare linkshells are external channels; do not call game SetChannel
+        if (channel.Value.IsMareLinkshell())
+        {
+            Plugin.CurrentTab.CurrentChannel.Channel = channel.Value;
+            return;
+        }
+
         var target = Plugin.CurrentTab.CurrentChannel.TempTellTarget ?? Plugin.CurrentTab.CurrentChannel.TellTarget;
         Plugin.Functions.Chat.SetChannel(channel.Value, target);
+        // Ensure local state reflects the selection even if the game channel did not change (e.g., already on this channel)
+        Plugin.CurrentTab.CurrentChannel.Channel = channel.Value;
     }
 
     private Chunk[] GenerateTellTargetName(TellTarget tellTarget)
@@ -964,6 +1009,17 @@ public sealed class ChatLogWindow : Window
                         Plugin.Functions.Chat.SendTell(reason, target.ContentId, target.Name, (ushort) world.RowId, tellBytes, trimmed);
                     }
 
+                    activeTab.CurrentChannel.ResetTempChannel();
+                    Chat = string.Empty;
+                    return;
+                }
+
+                // If current channel is Mare linkshell, send via IPC instead of game chat
+                var mareChannel = activeTab.CurrentChannel.UseTempChannel ? activeTab.CurrentChannel.TempChannel : activeTab.CurrentChannel.Channel;
+                if (mareChannel.IsMareLinkshell())
+                {
+                    var idx = (int)mareChannel.LinkshellIndex();
+                    Plugin.MareChat?.SendMessage(idx, trimmed);
                     activeTab.CurrentChannel.ResetTempChannel();
                     Chat = string.Empty;
                     return;
