@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
 using ChatTwo.Code;
+using ChatTwo.Util;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Plugin.Ipc;
@@ -105,7 +108,7 @@ internal sealed class IpcManager : IDisposable
                 new TextChunk(ChunkSource.Sender, null, senderLabel) { FallbackColour = chatType },
                 new TextChunk(ChunkSource.Sender, null, " ") { FallbackColour = chatType },
             };
-            var contentChunks = new List<Chunk> { new TextChunk(ChunkSource.Content, null, content) { FallbackColour = chatType } };
+            var contentChunks = BuildMareContentChunks(content, chatType);
 
             var code = new ChatCode((ushort)chatType);
             var message = new Message(PluginRef.MessageManager.CurrentContentId, 0, 0, code, senderChunks, contentChunks, new SeString(), new SeString());
@@ -156,4 +159,54 @@ internal sealed class IpcManager : IDisposable
     }
 
     private static (int, int) GetApiVersion() => (1, 0);
+
+    // Parse Mare content to support AutoTranslate tags and keep compatibility with
+    // downstream emote/URL processing in Message.CheckMessageContent.
+    private static List<Chunk> BuildMareContentChunks(string content, ChatType chatType)
+    {
+        // Fast path: no auto-translate tag present
+        if (content.IndexOf("<at:", StringComparison.Ordinal) < 0)
+        {
+            return new List<Chunk>
+            {
+                new TextChunk(ChunkSource.Content, null, content) { FallbackColour = chatType }
+            };
+        }
+
+        var payloads = new List<Payload>();
+        var regex = new Regex("<at:(\\d+),(\\d+)>", RegexOptions.Compiled);
+        var lastIndex = 0;
+        foreach (Match match in regex.Matches(content))
+        {
+            if (match.Index > lastIndex)
+            {
+                var textBefore = content.Substring(lastIndex, match.Index - lastIndex);
+                if (textBefore.Length > 0)
+                    payloads.Add(new TextPayload(textBefore));
+            }
+
+            if (uint.TryParse(match.Groups[1].Value, out var group)
+                && uint.TryParse(match.Groups[2].Value, out var row))
+            {
+                payloads.Add(new AutoTranslatePayload(group, row));
+            }
+            else
+            {
+                // If parsing fails, keep original text
+                payloads.Add(new TextPayload(match.Value));
+            }
+
+            lastIndex = match.Index + match.Length;
+        }
+
+        if (lastIndex < content.Length)
+        {
+            var tail = content.Substring(lastIndex);
+            if (tail.Length > 0)
+                payloads.Add(new TextPayload(tail));
+        }
+
+        var se = new SeString(payloads);
+        return ChunkUtil.ToChunks(se, ChunkSource.Content, chatType).ToList();
+    }
     }
