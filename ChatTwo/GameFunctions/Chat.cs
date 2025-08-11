@@ -590,4 +590,44 @@ internal sealed unsafe class Chat : IDisposable
         var raptureAtkUnitManager = RaptureAtkUnitManager.Instance();
         return raptureAtkUnitManager == null || raptureAtkUnitManager->UiFlags.HasFlag(UIModule.UiFlags.Chat);
     }
+
+    // Returns only the IME/language indicator prefix as chunks from the game's
+    // current channel label (e.g., the small square "中/英" icon + optional space).
+    // This is intended to be prepended for external channels like Mare.
+    internal List<Chunk> GetImePrefixChunks()
+    {
+        var result = new List<Chunk>();
+        var agent = AgentChatLog.Instance();
+        if (agent == null)
+            return result;
+
+        var label = SeString.Parse(agent->ChannelLabel);
+        if (label.Payloads.Count == 0)
+            return result;
+
+        var chunks = ChunkUtil.ToChunks(label, ChunkSource.None, null).ToList();
+        if (chunks.Count == 0)
+            return result;
+
+        var first = chunks[0];
+        switch (first)
+        {
+            case IconChunk icon:
+                result.Add(new IconChunk(ChunkSource.None, null, icon.Icon));
+                break;
+            case TextChunk text when !string.IsNullOrEmpty(text.Content):
+                var content = text.Content;
+                var c = content[0];
+                if (c >= '\uE000' && c <= '\uF8FF')
+                {
+                    var take = 1;
+                    if (content.Length > 1 && char.IsWhiteSpace(content[1]))
+                        take = 2;
+                    result.Add(new TextChunk(ChunkSource.None, null, content[..take]));
+                }
+                break;
+        }
+
+        return result;
+    }
 }

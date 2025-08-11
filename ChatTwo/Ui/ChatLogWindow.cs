@@ -834,7 +834,18 @@ public sealed class ChatLogWindow : Window
                 var idx = (int)channel.LinkshellIndex();
                 var mareName = Plugin.MareChat?.GetChannelName(idx) ?? "";
                 var text = string.IsNullOrEmpty(mareName) ? $"\uE044 [{idx + 1}]" : $"\uE044 [{idx + 1}]: {mareName}";
-                channelNameChunks = [new TextChunk(ChunkSource.None, null, text)];
+                var ime = Plugin.Functions.Chat.GetImePrefixChunks();
+                if (ime.Count > 0)
+                {
+                    var list = new List<Chunk>(ime.Count + 1);
+                    list.AddRange(ime);
+                    list.Add(new TextChunk(ChunkSource.None, null, text));
+                    channelNameChunks = list.ToArray();
+                }
+                else
+                {
+                    channelNameChunks = [new TextChunk(ChunkSource.None, null, text)];
+                }
             }
             else
                 channelNameChunks = [new TextChunk(ChunkSource.None, null, channel.ToChatType().Name())];
@@ -879,7 +890,18 @@ public sealed class ChatLogWindow : Window
                 var idx = (int)activeTab.CurrentChannel.Channel.LinkshellIndex();
                 var mareName = Plugin.MareChat?.GetChannelName(idx) ?? "";
                 var nm = string.IsNullOrEmpty(mareName) ? $"\uE044 [{idx + 1}]" : $"\uE044 [{idx + 1}]: {mareName}";
-                channelNameChunks = [new TextChunk(ChunkSource.None, null, nm)];
+                var ime = Plugin.Functions.Chat.GetImePrefixChunks();
+                if (ime.Count > 0)
+                {
+                    var list = new List<Chunk>(ime.Count + 1);
+                    list.AddRange(ime);
+                    list.Add(new TextChunk(ChunkSource.None, null, nm));
+                    channelNameChunks = list.ToArray();
+                }
+                else
+                {
+                    channelNameChunks = [new TextChunk(ChunkSource.None, null, nm)];
+                }
             }
             else
             {
