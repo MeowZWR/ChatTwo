@@ -258,6 +258,14 @@ internal sealed unsafe class Chat : IDisposable
             Plugin.Log.Debug($"Detected tell target '{playerName}'@{worldId}");
         }
 
+        // If ChatTwo is currently on a Mare linkshell channel (either fixed or temp),
+        // do not overwrite the current channel selection with the game's channel label
+        // update (which can be triggered by IME toggles). This prevents jumping back to
+        // the previous non-Mare channel when switching input method.
+        var current = Plugin.CurrentTab.CurrentChannel;
+        if (current.Channel.IsMareLinkshell() || (current.UseTempChannel && current.TempChannel.IsMareLinkshell()))
+            return ret;
+
         Plugin.CurrentTab.CurrentChannel = new UsedChannel
         {
             Channel = (InputChannel) channel,
