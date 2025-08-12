@@ -85,6 +85,24 @@ public sealed class Plugin : IDalamudPlugin
 
             Config = Interface.GetPluginConfig() as Configuration ?? new Configuration();
 
+            // 启动时拆分/合并 Mare 配置，确保主配置与上游兼容
+            try
+            {
+                var mareCfg = MareConfiguration.Load();
+                Config.ApplyMareConfig(mareCfg);
+
+                var (sanitized, mareNew) = Config.SplitMareConfig();
+                Interface.SavePluginConfig(sanitized);
+                mareNew.Save();
+
+                Config = sanitized;
+                Config.ApplyMareConfig(mareNew);
+            }
+            catch
+            {
+                // ignore
+            }
+
             if (Config.Tabs.Count == 0)
                 Config.Tabs.Add(TabsUtil.VanillaGeneral);
             Config.InactivityHideChannels ??= TabsUtil.AllChannels();
@@ -212,7 +230,13 @@ public sealed class Plugin : IDalamudPlugin
 
     internal void SaveConfig()
     {
-        Interface.SavePluginConfig(Config);
+        // 保存时同样拆分 Mare 配置
+        var (sanitized, mare) = Config.SplitMareConfig();
+        Interface.SavePluginConfig(sanitized);
+        mare.Save();
+        // 保存后恢复内存中的 Mare 配置，避免运行时丢失 Mare 相关设置
+        Config = sanitized;
+        Config.ApplyMareConfig(mare);
     }
 
     internal void LanguageChanged(string langCode)

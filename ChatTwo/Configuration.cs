@@ -123,6 +123,84 @@ internal class Configuration : IPluginConfiguration
     public ConcurrentDictionary<string, bool> SessionTokens = [];
     public int WebinterfaceMaxLinesToSend = 1000; // 1-10000
 
+    // 拆分 Mare 相关配置，避免主配置含自定义枚举而不兼容上游
+    internal (Configuration sanitized, MareConfiguration mare) SplitMareConfig()
+    {
+        var sanitized = new Configuration();
+        sanitized.UpdateFrom(this, false);
+
+        var mare = new MareConfiguration();
+
+        // InactivityHideChannels：移除 Mare 键并转存
+        if (sanitized.InactivityHideChannels != null)
+        {
+            foreach (var kv in sanitized.InactivityHideChannels.Where(e => e.Key.IsMareLinkshell()).ToList())
+            {
+                var idx = kv.Key.ToInputChannel()?.LinkshellIndex();
+                if (idx is not null && idx != uint.MaxValue)
+                    mare.InactivityHideChannels[(int)idx!.Value] = kv.Value;
+                sanitized.InactivityHideChannels.Remove(kv.Key);
+            }
+        }
+
+        // ChatColours：移除 Mare 键并转存
+        foreach (var kv in sanitized.ChatColours.Where(e => e.Key.IsMareLinkshell()).ToList())
+        {
+            var idx = kv.Key.ToInputChannel()?.LinkshellIndex();
+            if (idx is not null && idx != uint.MaxValue)
+                mare.ChatColours[(int)idx!.Value] = kv.Value;
+            sanitized.ChatColours.Remove(kv.Key);
+        }
+
+        // Tabs.ChatCodes：移除 Mare 键并转存
+        for (var i = 0; i < sanitized.Tabs.Count; i++)
+        {
+            var tab = sanitized.Tabs[i];
+            var mareDict = new Dictionary<int, ChatSource>();
+            foreach (var kv in tab.ChatCodes.Where(e => e.Key.IsMareLinkshell()).ToList())
+            {
+                var idx = kv.Key.ToInputChannel()?.LinkshellIndex();
+                if (idx is not null && idx != uint.MaxValue)
+                    mareDict[(int)idx!.Value] = kv.Value;
+                tab.ChatCodes.Remove(kv.Key);
+            }
+            mare.TabChatCodes.Add(mareDict);
+        }
+
+        return (sanitized, mare);
+    }
+
+    // 合并独立 Mare 配置到内存主配置
+    internal void ApplyMareConfig(MareConfiguration? mare)
+    {
+        if (mare == null)
+            return;
+
+        InactivityHideChannels ??= TabsUtil.AllChannels();
+
+        foreach (var (idx, src) in mare.InactivityHideChannels)
+        {
+            var type = ((InputChannel)(InputChannel.MareLinkshell1 + (uint)idx)).ToChatType();
+            InactivityHideChannels[type] = src;
+        }
+
+        foreach (var (idx, col) in mare.ChatColours)
+        {
+            var type = ((InputChannel)(InputChannel.MareLinkshell1 + (uint)idx)).ToChatType();
+            ChatColours[type] = col;
+        }
+
+        for (var i = 0; i < Tabs.Count && i < mare.TabChatCodes.Count; i++)
+        {
+            var map = mare.TabChatCodes[i];
+            foreach (var (idx, src) in map)
+            {
+                var type = ((InputChannel)(InputChannel.MareLinkshell1 + (uint)idx)).ToChatType();
+                Tabs[i].ChatCodes[type] = src;
+            }
+        }
+    }
+
     internal void UpdateFrom(Configuration other, bool backToOriginal)
     {
         if (backToOriginal)
