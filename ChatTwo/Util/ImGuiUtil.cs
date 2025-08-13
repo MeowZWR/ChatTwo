@@ -1,6 +1,7 @@
 using System.Numerics;
 using System.Text;
 using ChatTwo.Code;
+using ChatTwo;
 using ChatTwo.GameFunctions.Types;
 using ChatTwo.Resources;
 using Dalamud.Game.ClientState.Keys;
@@ -269,6 +270,33 @@ internal static class ImGuiUtil
         using (ImRaii.TextWrapPos(ImGui.GetFontSize() * 35.0f))
         {
             ImGui.TextUnformatted(tooltip);
+        }
+    }
+
+    internal static void EmoteTooltip(string code, float scale = 5.0f)
+    {
+        var image = EmoteCache.GetEmote(code);
+
+        using (ImRaii.Tooltip())
+        {
+            if (image is { Failed: false })
+            {
+                var effectiveScale = Plugin.MareCfg.EmoteTooltipScale > 0 ? Plugin.MareCfg.EmoteTooltipScale : scale;
+                var emoteSize = ImGui.CalcTextSize("W");
+                emoteSize = emoteSize with { Y = emoteSize.X } * 1.5f * effectiveScale;
+
+                if (image.IsLoaded)
+                    image.Draw(emoteSize);
+                else
+                    ImGui.Dummy(emoteSize);
+
+                ImGuiHelpers.ScaledDummy(4.0f);
+                CenterText(code);
+            }
+            else
+            {
+                CenterText(code);
+            }
         }
     }
 

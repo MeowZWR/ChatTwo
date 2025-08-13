@@ -43,6 +43,17 @@ internal sealed class Emote : ISettingsTab
         ImGuiUtil.OptionCheckbox(ref Mutable.ShowEmotes, Language.Options_ShowEmotes_Name, Language.Options_ShowEmotes_Desc);
         ImGui.Spacing();
 
+        // Emote tooltip scale (Mare config), base is 1.0
+        var scale = Plugin.MareCfg.EmoteTooltipScale;
+        ImGui.TextUnformatted("表情悬浮预览放大倍数");
+        ImGui.SetNextItemWidth(-1);
+        if (ImGui.SliderFloat("##emote-tooltip-scale", ref scale, 1.0f, 8.0f, "%.1fx"))
+        {
+            Plugin.MareCfg.EmoteTooltipScale = scale;
+            Plugin.SaveConfig();
+        }
+        ImGui.Spacing();
+
         ImGui.TextUnformatted(Language.Options_Emote_BlockedEmotes);
         ImGui.Spacing();
 

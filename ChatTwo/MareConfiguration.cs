@@ -13,6 +13,7 @@ internal class MareConfiguration
     public Dictionary<int, uint> ChatColours = new();
     public List<Dictionary<int, ChatSource>> TabChatCodes = new();
     public bool ReduceE044By2Pt;
+    public float EmoteTooltipScale = 5.0f;
 
     internal static string GetPath() => Path.Combine(Plugin.Interface.ConfigDirectory.FullName, "MareChat.json");
 

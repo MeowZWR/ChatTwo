@@ -96,6 +96,7 @@ namespace ChatTwo;
 
                 var (sanitized, mareNew) = Config.SplitMareConfig();
                 mareNew.ReduceE044By2Pt = MareCfg.ReduceE044By2Pt;
+                mareNew.EmoteTooltipScale = MareCfg.EmoteTooltipScale;
 
                 Interface.SavePluginConfig(sanitized);
                 mareNew.Save();
@@ -239,6 +240,7 @@ namespace ChatTwo;
         // 保存时拆分 Mare 配置；仅写盘，不替换内存中的 Config，避免重建 Tabs 导致消息列表被清空
         var (sanitized, mare) = Config.SplitMareConfig();
         mare.ReduceE044By2Pt = MareCfg.ReduceE044By2Pt;
+        mare.EmoteTooltipScale = MareCfg.EmoteTooltipScale;
         Interface.SavePluginConfig(sanitized);
         mare.Save();
     }

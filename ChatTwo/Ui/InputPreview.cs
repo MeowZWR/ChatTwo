@@ -205,7 +205,7 @@ public partial class InputPreview : Window
                     ImGui.Dummy(emoteSize);
 
                 if (ImGui.IsItemHovered())
-                    ImGuiUtil.Tooltip(emotePayload.Code);
+                    ImGuiUtil.EmoteTooltip(emotePayload.Code);
 
                 CursorPosition += emotePayload.Code.Length;
                 return;
