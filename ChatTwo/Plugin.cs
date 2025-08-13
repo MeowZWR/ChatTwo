@@ -230,13 +230,10 @@ public sealed class Plugin : IDalamudPlugin
 
     internal void SaveConfig()
     {
-        // 保存时同样拆分 Mare 配置
+        // 保存时拆分 Mare 配置；仅写盘，不替换内存中的 Config，避免重建 Tabs 导致消息列表被清空
         var (sanitized, mare) = Config.SplitMareConfig();
         Interface.SavePluginConfig(sanitized);
         mare.Save();
-        // 保存后恢复内存中的 Mare 配置，避免运行时丢失 Mare 相关设置
-        Config = sanitized;
-        Config.ApplyMareConfig(mare);
     }
 
     internal void LanguageChanged(string langCode)
