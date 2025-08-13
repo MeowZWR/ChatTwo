@@ -1,3 +1,5 @@
+using Dalamud.Game.Text.SeStringHandling;
+using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Plugin.Ipc;
 
 namespace ChatTwo.Ipc;
@@ -10,6 +12,7 @@ internal sealed class MareChat : IDisposable
     private ICallGateSubscriber<int, string, object?>? SendMessageGate { get; }
 
     private Dictionary<int, string> ChannelNames { get; set; } = new();
+    internal DalamudLinkPayload? OpenChatLinkPayload { get; }
 
     internal MareChat(Plugin plugin)
     {
@@ -26,6 +29,9 @@ internal sealed class MareChat : IDisposable
             {
                 // ignore if provider not present yet
             }
+
+            // Register clickable chat link for Mare channel icon (\uE044)
+            OpenChatLinkPayload = Plugin.Interface.AddChatLinkHandler(10001, OnOpenChatLinkClicked);
         }
         catch
         {
@@ -71,6 +77,49 @@ internal sealed class MareChat : IDisposable
     internal void InvalidateChannels()
     {
         ChannelNames.Clear();
+    }
+
+    private void OnOpenChatLinkClicked(uint cmdId, SeString se)
+    {
+        try
+        {
+            var label = string.Empty;
+            var inLink = false;
+            foreach (var p in se.Payloads)
+            {
+                if (p is DalamudLinkPayload)
+                {
+                    inLink = true;
+                    continue;
+                }
+                if (!inLink)
+                    continue;
+                if (p is RawPayload raw && Equals(raw, RawPayload.LinkTerminator))
+                    break;
+                if (p is TextPayload tp)
+                    label += tp.Text;
+            }
+
+            string arg = string.Empty;
+            var open = label.IndexOf('[');
+            var close = label.IndexOf(']', open + 1);
+            if (open >= 0 && close > open)
+            {
+                var inner = label.Substring(open + 1, close - open - 1).Trim();
+                var hasNonDigit = false;
+                for (var i = 0; i < inner.Length; i++)
+                    if (!char.IsDigit(inner[i])) { hasNonDigit = true; break; }
+                if (hasNonDigit && inner.Length > 0)
+                    arg = inner;
+            }
+
+            var cmd = string.IsNullOrEmpty(arg) ? "/mare chat" : $"/mare chat {arg}";
+            ChatTwo.GameFunctions.ChatBox.SendMessage(cmd);
+        }
+        catch
+        {
+            // ignore
+        }
     }
 }
 

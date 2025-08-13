@@ -21,7 +21,6 @@ namespace ChatTwo;
     public sealed class Plugin : IDalamudPlugin
     {
         internal const string PluginName = "Chat 2";
-        internal DalamudLinkPayload MareOpenChatLinkPayload { get; private set; } = null!;
 
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
     [PluginService] internal static IDalamudPluginInterface Interface { get; private set; } = null!;
@@ -149,11 +148,6 @@ namespace ChatTwo;
             Interface.UiBuilder.DisableGposeUiHide = true;
 
             MessageManager = new MessageManager(this); // requires Ui
-
-            MareOpenChatLinkPayload = Interface.AddChatLinkHandler(10001, (cmdId, se) =>
-            {
-                ChatTwo.GameFunctions.ChatBox.SendMessage("/mare chat");
-            });
 
             // let all the other components register, then initialize commands
             Commands.Initialise();

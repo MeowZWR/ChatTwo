@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.RegularExpressions;
 using ChatTwo.Code;
 using ChatTwo.Util;
@@ -102,7 +99,7 @@ internal sealed class IpcManager : IDisposable
             var chanLabel = string.IsNullOrEmpty(mareName) ? $"\uE044[{idx + 1}]" : $"\uE044[{mareName}]";
             var senderLabel = $"<{sender}>";
 
-            var mareLink = PluginRef.MareOpenChatLinkPayload;
+            var mareLink = PluginRef.MareChat?.OpenChatLinkPayload;
             var senderChunks = new List<Chunk>
             {
                 new TextChunk(ChunkSource.Sender, mareLink, chanLabel) { FallbackColour = chatType },
@@ -113,14 +110,19 @@ internal sealed class IpcManager : IDisposable
 
             var code = new ChatCode((ushort)chatType);
             // Build sender SeString containing the same link payload so click handler can resolve it
-            var senderSourcePayloads = new List<Payload>
+            var senderSourcePayloads = new List<Payload>();
+            if (mareLink != null)
             {
-                mareLink,
-                new TextPayload(chanLabel),
-                RawPayload.LinkTerminator,
-                new TextPayload(senderLabel),
-                new TextPayload(" "),
-            };
+                senderSourcePayloads.Add(mareLink);
+                senderSourcePayloads.Add(new TextPayload(chanLabel));
+                senderSourcePayloads.Add(RawPayload.LinkTerminator);
+            }
+            else
+            {
+                senderSourcePayloads.Add(new TextPayload(chanLabel));
+            }
+            senderSourcePayloads.Add(new TextPayload(senderLabel));
+            senderSourcePayloads.Add(new TextPayload(" "));
             var senderSource = new SeString(senderSourcePayloads);
 
             var message = new Message(PluginRef.MessageManager.CurrentContentId, 0, 0, code, senderChunks, contentChunks, senderSource, new SeString());
