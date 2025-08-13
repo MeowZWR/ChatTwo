@@ -92,5 +92,12 @@ public class Fonts : ISettingsTab
         ImGuiUtil.HelpText(Language.Options_SymbolsFontSize_Description);
 
         ImGui.Spacing();
+
+        ImGui.Separator();
+        var reduce = Plugin.MareCfg.ReduceE044By2Pt;
+        if (ImGui.Checkbox("将Mare图标\uE044字号减小2pt", ref reduce))
+        {
+            Plugin.MareCfg.ReduceE044By2Pt = reduce;
+        }
     }
 }

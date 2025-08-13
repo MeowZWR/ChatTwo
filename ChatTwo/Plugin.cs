@@ -41,6 +41,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IAddonLifecycle AddonLifecycle { get; private set; } = null!;
 
     internal static Configuration Config = null!;
+    internal static MareConfiguration MareCfg { get; private set; } = new MareConfiguration();
 
     public readonly WindowSystem WindowSystem = new(PluginName);
     public SettingsWindow SettingsWindow { get; }
@@ -88,14 +89,18 @@ public sealed class Plugin : IDalamudPlugin
             // 启动时拆分/合并 Mare 配置，确保主配置与上游兼容
             try
             {
-                var mareCfg = MareConfiguration.Load();
+                var mareCfg = MareConfiguration.Load() ?? new MareConfiguration();
+                MareCfg = mareCfg;
                 Config.ApplyMareConfig(mareCfg);
 
                 var (sanitized, mareNew) = Config.SplitMareConfig();
+                mareNew.ReduceE044By2Pt = MareCfg.ReduceE044By2Pt;
+
                 Interface.SavePluginConfig(sanitized);
                 mareNew.Save();
 
                 Config = sanitized;
+                MareCfg = mareNew;
                 Config.ApplyMareConfig(mareNew);
             }
             catch
@@ -232,6 +237,7 @@ public sealed class Plugin : IDalamudPlugin
     {
         // 保存时拆分 Mare 配置；仅写盘，不替换内存中的 Config，避免重建 Tabs 导致消息列表被清空
         var (sanitized, mare) = Config.SplitMareConfig();
+        mare.ReduceE044By2Pt = MareCfg.ReduceE044By2Pt;
         Interface.SavePluginConfig(sanitized);
         mare.Save();
     }

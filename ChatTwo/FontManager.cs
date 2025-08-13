@@ -8,18 +8,20 @@ namespace ChatTwo;
 
 public class FontManager
 {
-    internal IFontHandle Axis { get; private set; }
-    internal IFontHandle AxisItalic { get; private set; }
+    internal IFontHandle Axis { get; private set; } = null!;
+    internal IFontHandle AxisItalic { get; private set; } = null!;
 
-    internal IFontHandle RegularFont { get; private set; }
+    internal IFontHandle RegularFont { get; private set; } = null!;
+    internal IFontHandle RegularFontSmallSymbols { get; private set; } = null!;
     internal IFontHandle? ItalicFont { get; private set; }
+    internal IFontHandle? ItalicFontSmallSymbols { get; private set; }
 
-    internal IFontHandle FontAwesome { get; private set; }
+    internal IFontHandle FontAwesome { get; private set; } = null!;
 
     internal readonly byte[] GameSymFont;
 
-    private ushort[] Ranges;
-    private ushort[] JpRange;
+    private ushort[] Ranges = null!;
+    private ushort[] JpRange = null!;
 
 
     public static readonly HashSet<float> AxisFontSizeList =
@@ -44,7 +46,7 @@ public class FontManager
                 .ReadAsByteArrayAsync()
                 .Result;
 
-            Dalamud.Utility.Util.WriteAllBytesSafe(filePath, GameSymFont);
+            Dalamud.Utility.FilesystemUtil.WriteAllBytesSafe(filePath, GameSymFont);
         }
     }
 
@@ -128,6 +130,26 @@ public class FontManager
                 }
             ));
 
+        // Build a variant font with reduced GameSymbol size for rendering U+E044 smaller when needed.
+        RegularFontSmallSymbols = Plugin.Interface.UiBuilder.FontAtlas.NewDelegateFontHandle(
+            e => e.OnPreBuild(
+                tk =>
+                {
+                    var config = new SafeFontConfig {SizePt = Plugin.Config.GlobalFontV2.SizePt, GlyphRanges = Ranges};
+                    config.MergeFont = Plugin.Config.GlobalFontV2.FontId.AddToBuildToolkit(tk, config);
+
+                    config.SizePt = Plugin.Config.JapaneseFontV2.SizePt;
+                    config.GlyphRanges = JpRange;
+                    Plugin.Config.JapaneseFontV2.FontId.AddToBuildToolkit(tk, config);
+
+                    var smallSymbols = Math.Max(1f, Plugin.Config.SymbolsFontSizeV2 - 2f);
+                    config.SizePt = smallSymbols;
+                    tk.AddGameSymbol(config);
+
+                    tk.Font = config.MergeFont;
+                }
+            ));
+
         if (Plugin.Config.ItalicEnabled)
         {
             ItalicFont = Plugin.Interface.UiBuilder.FontAtlas.NewDelegateFontHandle(
@@ -147,10 +169,30 @@ public class FontManager
                         tk.Font = config.MergeFont;
                     }
                 ));
+
+            ItalicFontSmallSymbols = Plugin.Interface.UiBuilder.FontAtlas.NewDelegateFontHandle(
+                e => e.OnPreBuild(
+                    tk =>
+                    {
+                        var config = new SafeFontConfig {SizePt = Plugin.Config.ItalicFontV2.SizePt, GlyphRanges = Ranges};
+                        config.MergeFont = Plugin.Config.ItalicFontV2.FontId.AddToBuildToolkit(tk, config);
+
+                        config.SizePt = Plugin.Config.JapaneseFontV2.SizePt;
+                        config.GlyphRanges = JpRange;
+                        Plugin.Config.JapaneseFontV2.FontId.AddToBuildToolkit(tk, config);
+
+                        var smallSymbols = Math.Max(1f, Plugin.Config.SymbolsFontSizeV2 - 2f);
+                        config.SizePt = smallSymbols;
+                        tk.AddGameSymbol(config);
+
+                        tk.Font = config.MergeFont;
+                    }
+                ));
         }
         else
         {
             ItalicFont = null;
+            ItalicFontSmallSymbols = null;
         }
     }
 

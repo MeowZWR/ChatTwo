@@ -1864,14 +1864,36 @@ public sealed class ChatLogWindow : Window
                 content = HidePlayerInString(content, player.Name.TextValue, player.HomeWorld.RowId);
         }
 
-        if (wrap)
+        var useSmallSymbolFont = Plugin.Config.FontsEnabled && Plugin.MareCfg.ReduceE044By2Pt && content.IndexOf('\uE044') >= 0;
+        if (useSmallSymbolFont)
         {
-            ImGuiUtil.WrapText(content, chunk, handler, DefaultText, lineWidth);
+            if (text.Italic)
+                (useCustomItalicFont && Plugin.FontManager.ItalicFontSmallSymbols != null ? Plugin.FontManager.ItalicFontSmallSymbols! : Plugin.FontManager.AxisItalic).Push();
+            else
+                Plugin.FontManager.RegularFontSmallSymbols.Push();
         }
-        else
+
+        try
         {
-            ImGui.TextUnformatted(content);
-            ImGuiUtil.PostPayload(chunk, handler);
+            if (wrap)
+            {
+                ImGuiUtil.WrapText(content, chunk, handler, DefaultText, lineWidth);
+            }
+            else
+            {
+                ImGui.TextUnformatted(content);
+                ImGuiUtil.PostPayload(chunk, handler);
+            }
+        }
+        finally
+        {
+            if (useSmallSymbolFont)
+            {
+                if (text.Italic)
+                    (useCustomItalicFont && Plugin.FontManager.ItalicFontSmallSymbols != null ? Plugin.FontManager.ItalicFontSmallSymbols! : Plugin.FontManager.AxisItalic).Pop();
+                else
+                    Plugin.FontManager.RegularFontSmallSymbols.Pop();
+            }
         }
 
         if (text.Italic)

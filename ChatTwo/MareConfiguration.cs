@@ -12,6 +12,7 @@ internal class MareConfiguration
     public Dictionary<int, ChatSource> InactivityHideChannels = new();
     public Dictionary<int, uint> ChatColours = new();
     public List<Dictionary<int, ChatSource>> TabChatCodes = new();
+    public bool ReduceE044By2Pt;
 
     internal static string GetPath() => Path.Combine(Plugin.Interface.ConfigDirectory.FullName, "MareChat.json");
 
