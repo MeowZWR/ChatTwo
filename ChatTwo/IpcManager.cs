@@ -99,19 +99,31 @@ internal sealed class IpcManager : IDisposable
 
             var idx = (int)input.LinkshellIndex();
             var mareName = PluginRef.MareChat?.GetChannelName(idx) ?? "";
-            var chanLabel = string.IsNullOrEmpty(mareName) ? $"[\uE044{idx + 1}]" : $"[\uE044{mareName}]";
+            var chanLabel = string.IsNullOrEmpty(mareName) ? $"\uE044[{idx + 1}]" : $"\uE044[{mareName}]";
             var senderLabel = $"<{sender}>";
 
+            var mareLink = PluginRef.MareOpenChatLinkPayload;
             var senderChunks = new List<Chunk>
             {
-                new TextChunk(ChunkSource.Sender, null, chanLabel) { FallbackColour = chatType },
+                new TextChunk(ChunkSource.Sender, mareLink, chanLabel) { FallbackColour = chatType },
                 new TextChunk(ChunkSource.Sender, null, senderLabel) { FallbackColour = chatType },
                 new TextChunk(ChunkSource.Sender, null, " ") { FallbackColour = chatType },
             };
             var contentChunks = BuildMareContentChunks(content, chatType);
 
             var code = new ChatCode((ushort)chatType);
-            var message = new Message(PluginRef.MessageManager.CurrentContentId, 0, 0, code, senderChunks, contentChunks, new SeString(), new SeString());
+            // Build sender SeString containing the same link payload so click handler can resolve it
+            var senderSourcePayloads = new List<Payload>
+            {
+                mareLink,
+                new TextPayload(chanLabel),
+                RawPayload.LinkTerminator,
+                new TextPayload(senderLabel),
+                new TextPayload(" "),
+            };
+            var senderSource = new SeString(senderSourcePayloads);
+
+            var message = new Message(PluginRef.MessageManager.CurrentContentId, 0, 0, code, senderChunks, contentChunks, senderSource, new SeString());
 
             // Overwrite time to server-provided value if possible (ignore if not settable)
             try

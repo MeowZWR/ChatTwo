@@ -6,6 +6,7 @@ using ChatTwo.Ipc;
 using ChatTwo.Resources;
 using ChatTwo.Ui;
 using ChatTwo.Util;
+using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects;
 using Dalamud.Interface.Windowing;
@@ -17,9 +18,10 @@ using ImGuiNET;
 namespace ChatTwo;
 
 // ReSharper disable once ClassNeverInstantiated.Global
-public sealed class Plugin : IDalamudPlugin
-{
-    internal const string PluginName = "Chat 2";
+    public sealed class Plugin : IDalamudPlugin
+    {
+        internal const string PluginName = "Chat 2";
+        internal DalamudLinkPayload MareOpenChatLinkPayload { get; private set; } = null!;
 
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
     [PluginService] internal static IDalamudPluginInterface Interface { get; private set; } = null!;
@@ -147,6 +149,11 @@ public sealed class Plugin : IDalamudPlugin
             Interface.UiBuilder.DisableGposeUiHide = true;
 
             MessageManager = new MessageManager(this); // requires Ui
+
+            MareOpenChatLinkPayload = Interface.AddChatLinkHandler(10001, (cmdId, se) =>
+            {
+                ChatTwo.GameFunctions.ChatBox.SendMessage("/mare chat");
+            });
 
             // let all the other components register, then initialize commands
             Commands.Initialise();
