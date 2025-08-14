@@ -108,7 +108,7 @@ internal sealed class IpcManager : IDisposable
             };
             var contentChunks = BuildMareContentChunks(content, chatType);
 
-            var code = new ChatCode((ushort)chatType);
+            var code = ChatCode.FromCustom(chatType);
             // Build sender SeString containing the same link payload so click handler can resolve it
             var senderSourcePayloads = new List<Payload>();
             if (mareLink != null)

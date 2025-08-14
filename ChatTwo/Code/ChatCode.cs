@@ -3,6 +3,7 @@ namespace ChatTwo.Code;
 internal class ChatCode
 {
     private const ushort Clear7 = ~(~0 << 7);
+    private const ushort CustomSentinel = 0x8000;
 
     internal ushort Raw { get; }
 
@@ -14,9 +15,15 @@ internal class ChatCode
     internal ChatCode(ushort raw)
     {
         Raw = raw;
-        // For custom ChatTwo types (>= 1000), do not apply the 7-bit mask.
-        // The default 7-bit masking is only valid for native XivChatType values.
-        if (raw >= 1000)
+        // Prefer high-bit sentinel for ChatTwo custom channels to avoid collisions with game-composed codes.
+        if ((raw & CustomSentinel) != 0)
+        {
+            Type = (ChatType)(raw & ~CustomSentinel);
+            Source = 0;
+            Target = 0;
+        }
+        // Back-compat: detect legacy custom codes that were stored without sentinel
+        else if (((ChatType)raw).IsExtraChatLinkshell() || ((ChatType)raw).IsMareLinkshell())
         {
             Type = (ChatType)raw;
             Source = 0;
@@ -28,6 +35,16 @@ internal class ChatCode
             Source = SourceFrom(11);
             Target = SourceFrom(7);
         }
+    }
+
+    internal static ushort EncodeCustomRaw(ChatType type)
+    {
+        return (ushort)(CustomSentinel | (ushort)type);
+    }
+
+    internal static ChatCode FromCustom(ChatType type)
+    {
+        return new ChatCode(EncodeCustomRaw(type));
     }
 
     internal ChatType Parent() => Type switch
