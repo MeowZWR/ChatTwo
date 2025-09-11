@@ -83,6 +83,7 @@ internal static class TabsUtil
             [ChatType.Orchestrion] = ChatSourceExt.All,
             [ChatType.MessageBook] = ChatSourceExt.All,
             [ChatType.Alarm] = ChatSourceExt.All,
+            [ChatType.GlamourNotifications] = ChatSourceExt.All,
         },
     };
 

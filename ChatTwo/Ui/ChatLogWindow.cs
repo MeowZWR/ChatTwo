@@ -18,7 +18,7 @@ using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using Dalamud.Memory;
 using FFXIVClientStructs.FFXIV.Client.UI;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using Lumina.Excel.Sheets;
 
 namespace ChatTwo.Ui;
@@ -465,10 +465,10 @@ public sealed class ChatLogWindow : Window
         if (!Plugin.Config.ShowTitleBar)
             Flags |= ImGuiWindowFlags.NoTitleBar;
 
-        if (LastViewport == ImGuiHelpers.MainViewport.NativePtr && !WasDocked)
+        if (LastViewport == ImGuiHelpers.MainViewport.Handle && !WasDocked)
             BgAlpha = Plugin.Config.WindowAlpha / 100f;
 
-        LastViewport = ImGui.GetWindowViewport().NativePtr;
+        LastViewport = ImGui.GetWindowViewport().Handle;
         WasDocked = ImGui.IsWindowDocked();
     }
 
@@ -552,7 +552,7 @@ public sealed class ChatLogWindow : Window
         if (resized)
             LastResize.Restart();
 
-        LastViewport = ImGui.GetWindowViewport().NativePtr;
+        LastViewport = ImGui.GetWindowViewport().Handle;
         WasDocked = ImGui.IsWindowDocked();
 
         if (IsChatMode && Plugin.InputPreview.IsDrawable)
@@ -1556,7 +1556,7 @@ public sealed class ChatLogWindow : Window
             for (var i = 0; i < 10 && i < AutoCompleteList.Count; i++)
             {
                 var num = (i + 1) % 10;
-                var key = ImGuiKey._0 + num;
+                var key = ImGuiKey.Key0 + num;
                 var key2 = ImGuiKey.Keypad0 + num;
                 if (ImGui.IsKeyDown(key) || ImGui.IsKeyDown(key2))
                     selected = i;
@@ -1586,7 +1586,7 @@ public sealed class ChatLogWindow : Window
         if (!child.Success)
             return;
 
-        var clipper = new ImGuiListClipperPtr(ImGuiNative.ImGuiListClipper_ImGuiListClipper());
+        var clipper = new ImGuiListClipperPtr(ImGuiNative.ImGuiListClipper());
 
         clipper.Begin(AutoCompleteList.Count);
         while (clipper.Step())
@@ -1629,19 +1629,19 @@ public sealed class ChatLogWindow : Window
         ImGui.SetScrollFromPosY(selectedPos - ImGui.GetWindowPos().Y);
     }
 
-    private unsafe int AutoCompleteCallback(ImGuiInputTextCallbackData* data)
+    private int AutoCompleteCallback(scoped ref ImGuiInputTextCallbackData data)
     {
         if (FixCursor && AutoCompleteInfo != null)
         {
             FixCursor = false;
-            data->CursorPos = AutoCompleteInfo.ToComplete.Length;
-            data->SelectionStart = data->SelectionEnd = data->CursorPos;
+            data.CursorPos = AutoCompleteInfo.ToComplete.Length;
+            data.SelectionStart = data.SelectionEnd = data.CursorPos;
         }
 
         if (AutoCompleteList == null)
             return 0;
 
-        switch (data->EventKey)
+        switch (data.EventKey)
         {
             case ImGuiKey.UpArrow:
                 if (AutoCompleteSelection == 0)
@@ -1676,7 +1676,7 @@ public sealed class ChatLogWindow : Window
         return 0;
     }
 
-    private unsafe int Callback(ImGuiInputTextCallbackData* data)
+    private unsafe int Callback(scoped ref ImGuiInputTextCallbackData data)
     {
         // We play the opening sound here only if closing sound has been played before
         if (Plugin.Config.PlaySounds && PlayedClosingSound)
@@ -1685,29 +1685,27 @@ public sealed class ChatLogWindow : Window
             UIGlobals.PlaySoundEffect(ChatOpenSfx);
         }
 
-        var ptr = new ImGuiInputTextCallbackDataPtr(data);
-
         // Set the cursor pos to the user selected
         if (Plugin.InputPreview.SelectedCursorPos != -1)
         {
             var bytePos = GetBytePosFromCharPos(Chat, Plugin.InputPreview.SelectedCursorPos);
-            ptr.CursorPos = bytePos;
-            data->SelectionStart = data->SelectionEnd = bytePos; 
+            data.CursorPos = bytePos;
+            data.SelectionStart = data.SelectionEnd = bytePos; 
         }
         Plugin.InputPreview.SelectedCursorPos = -1;
 
         // Safely calculate cursor position
         try
         {
-            if (ptr.Buf != IntPtr.Zero && data->BufTextLen > 0)
+            if (data.Buf != null && data.BufTextLen > 0)
             {
                 // Use input buffer to calculate
-                CursorPos = Encoding.UTF8.GetCharCount((byte*)ptr.Buf, data->BufTextLen);
+                CursorPos = Encoding.UTF8.GetCharCount((byte*)data.Buf, data.BufTextLen);
             }
             else
             {
                 // Fall back to Chat string when buffer isn't available
-                CursorPos = GetCharPosFromBytePos(Chat, ptr.CursorPos);
+                CursorPos = GetCharPosFromBytePos(Chat, data.CursorPos);
             }
         }
         catch
@@ -1716,14 +1714,14 @@ public sealed class ChatLogWindow : Window
             CursorPos = Chat.Length;
         }
 
-        if (data->EventFlag == ImGuiInputTextFlags.CallbackCompletion)
+        if (data.EventFlag == ImGuiInputTextFlags.CallbackCompletion)
         {
-            if (ptr.CursorPos == 0)
+            if (data.CursorPos == 0)
             {
                 AutoCompleteInfo = new AutoCompleteInfo(
                     string.Empty,
-                    ptr.CursorPos,
-                    ptr.CursorPos
+                    data.CursorPos,
+                    data.CursorPos
                 );
                 AutoCompleteOpen = true;
                 AutoCompleteSelection = 0;
@@ -1732,14 +1730,14 @@ public sealed class ChatLogWindow : Window
             }
 
             int white;
-            for (white = ptr.CursorPos - 1; white >= 0; white--)
-                if (data->Buf[white] == ' ')
+            for (white = data.CursorPos - 1; white >= 0; white--)
+                if (data.Buf[white] == ' ')
                     break;
 
-            var start = ptr.Buf + white + 1;
-            var end = ptr.CursorPos - white - 1;
-            var utf8Message = Marshal.PtrToStringUTF8(start, end);
-            var correctedCursor = ptr.CursorPos - (end - utf8Message.Length);
+            var start = data.Buf + white + 1;
+            var end = data.CursorPos - white - 1;
+            var utf8Message = Marshal.PtrToStringUTF8((nint)start, end);
+            var correctedCursor = data.CursorPos - (end - utf8Message.Length);
             AutoCompleteInfo = new AutoCompleteInfo(
                 utf8Message,
                 white + 1,
@@ -1750,21 +1748,21 @@ public sealed class ChatLogWindow : Window
             return 0;
         }
 
-        if (data->EventFlag == ImGuiInputTextFlags.CallbackCharFilter)
-            if (!Plugin.Functions.Chat.IsCharValid((char) ptr.EventChar))
+        if (data.EventFlag == ImGuiInputTextFlags.CallbackCharFilter)
+            if (!Plugin.Functions.Chat.IsCharValid((char) data.EventChar))
                 return 1;
 
         if (Activate)
         {
             Activate = false;
             var bytePos = Encoding.UTF8.GetBytes(Chat.Substring(0, ActivatePos > -1 ? ActivatePos : Chat.Length)).Length;
-            data->CursorPos = bytePos;
-            data->SelectionStart = data->SelectionEnd = data->CursorPos;
+            data.CursorPos = bytePos;
+            data.SelectionStart = data.SelectionEnd = data.CursorPos;
             ActivatePos = -1;
         }
 
         Plugin.CommandHelpWindow.IsOpen = false;
-        var text = MemoryHelper.ReadString((nint) data->Buf, data->BufTextLen);
+        var text = MemoryHelper.ReadString((nint) data.Buf, data.BufTextLen);
         if (text.StartsWith('/'))
         {
             var command = text.Split(' ')[0];
@@ -1776,11 +1774,11 @@ public sealed class ChatLogWindow : Window
                 Plugin.CommandHelpWindow.UpdateContent(cmd.Value);
         }
 
-        if (data->EventFlag != ImGuiInputTextFlags.CallbackHistory)
+        if (data.EventFlag != ImGuiInputTextFlags.CallbackHistory)
             return 0;
 
         var prevPos = InputBacklogIdx;
-        switch (data->EventKey)
+        switch (data.EventKey)
         {
             case ImGuiKey.UpArrow:
                 switch (InputBacklogIdx)
@@ -1812,8 +1810,8 @@ public sealed class ChatLogWindow : Window
             return 0;
 
         var historyStr = InputBacklogIdx >= 0 ? InputBacklog[InputBacklogIdx] : string.Empty;
-        ptr.DeleteChars(0, ptr.BufTextLen);
-        ptr.InsertChars(0, historyStr);
+        data.DeleteChars(0, data.BufTextLen);
+        data.InsertChars(0, historyStr);
 
         return 0;
     }
@@ -1965,7 +1963,7 @@ public sealed class ChatLogWindow : Window
         var uv0 = new Vector2(entry.Left, entry.Top + 170) * 2 / texSize;
         var uv1 = new Vector2(entry.Left + entry.Width, entry.Top + entry.Height + 170) * 2 / texSize;
 
-        ImGui.Image(iconTexture.ImGuiHandle, size, uv0, uv1);
+        ImGui.Image(iconTexture.Handle, size, uv0, uv1);
         ImGuiUtil.PostPayload(chunk, handler);
 
     }
