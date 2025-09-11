@@ -456,7 +456,9 @@ internal unsafe class KeybindManager : IDisposable {
 
         try
         {
-            TellReason? reason = info.Channel == InputChannel.Tell ? TellReason.Reply : null;
+            TellReason? reason = null;
+            if (info.Channel == InputChannel.Tell)
+                reason = TellReason.Reply;
             Plugin.ChatLogWindow.Activated(new ChatActivatedArgs(info) { TellReason = reason, });
         }
         catch (Exception ex)

@@ -128,7 +128,8 @@ public sealed class ChatLogWindow : Window
 
     internal unsafe void Activated(ChatActivatedArgs args)
     {
-        TellSpecial = args.TellSpecial;
+        if (args.TellSpecial)
+            TellSpecial = true;
 
         Activate = true;
         PlayedClosingSound = false;
@@ -163,22 +164,43 @@ public sealed class ChatLogWindow : Window
                             ? -1 : 1;
 
                     var tellInfo = Plugin.Functions.Chat.GetTellHistoryInfo(idx);
-                    if (tellInfo != null && reason != null)
-                        Plugin.CurrentTab.CurrentChannel.TempTellTarget = new TellTarget(tellInfo.Name, (ushort) tellInfo.World, tellInfo.ContentId, reason.Value);
+                    if (tellInfo != null)
+                    {
+                        var resolvedReason = reason ?? TellReason.Reply;
+                        Plugin.CurrentTab.CurrentChannel.TempTellTarget = new TellTarget(tellInfo.Name, (ushort) tellInfo.World, tellInfo.ContentId, resolvedReason);
+
+                        // Foray: establish special tell session so we can send via ExecuteCommandInner
+                        if (Sheets.IsInForay())
+                        {
+                            var worldName = Sheets.WorldSheet.TryGetRow((uint) tellInfo.World, out var w) ? w.Name.ExtractText() : string.Empty;
+                            Plugin.Functions.Chat.SetEurekaTellChannel(tellInfo.Name, worldName, (ushort) tellInfo.World, 0, tellInfo.ContentId, 0, info.Permanent);
+                        }
+                    }
                 }
                 else
                 {
                     Plugin.CurrentTab.CurrentChannel.TellTarget = null;
                     if (target != null)
                     {
+                        var resolved = target;
+                        if (target.Reason == 0)
+                            resolved = new TellTarget(target.Name, target.World, target.ContentId, TellReason.Reply);
+
                         if (info.Permanent)
                         {
-                            Plugin.CurrentTab.CurrentChannel.TellTarget = target;
+                            Plugin.CurrentTab.CurrentChannel.TellTarget = resolved;
                         }
                         else
                         {
                             Plugin.CurrentTab.CurrentChannel.UseTempChannel = true;
-                            Plugin.CurrentTab.CurrentChannel.TempTellTarget = target;
+                            Plugin.CurrentTab.CurrentChannel.TempTellTarget = resolved;
+                        }
+
+                        // Foray: establish special tell session so we can send via ExecuteCommandInner
+                        if (Sheets.IsInForay())
+                        {
+                            var worldName = target.ToWorldString();
+                            Plugin.Functions.Chat.SetEurekaTellChannel(target.Name, worldName, target.World, 0, target.ContentId, 0, info.Permanent);
                         }
                     }
                 }
@@ -1004,6 +1026,32 @@ public sealed class ChatLogWindow : Window
                 var target = activeTab.CurrentChannel.TempTellTarget ?? activeTab.CurrentChannel.TellTarget;
                 if (target != null)
                 {
+                    // Foray: ensure session and send via ExecuteCommandInner regardless of focus changes
+                    if (Sheets.IsInForay())
+                    {
+                        var worldName = Sheets.WorldSheet.TryGetRow(target.World, out var w) ? w.Name.ExtractText() : string.Empty;
+
+                        // Recover contentId if lost due to focus changes by checking history
+                        ulong contentIdToUse = target.ContentId;
+                        if (contentIdToUse == 0)
+                        {
+                            var hist = Plugin.Functions.Chat.GetTellHistoryInfo(0);
+                            if (hist != null && string.Equals(hist.Name, target.Name, StringComparison.Ordinal))
+                                contentIdToUse = hist.ContentId;
+                        }
+
+                        Plugin.Functions.Chat.SetEurekaTellChannel(target.Name, worldName, target.World, 0, contentIdToUse, 0, true);
+
+                        var tellBytes = Encoding.UTF8.GetBytes(trimmed);
+                        AutoTranslate.ReplaceWithPayload(ref tellBytes);
+
+                        Plugin.Functions.Chat.SendTellUsingCommandInner(tellBytes);
+
+                        activeTab.CurrentChannel.ResetTempChannel();
+                        Chat = string.Empty;
+                        return;
+                    }
+
                     // ContentId 0 is a case where we can't directly send messages, so we send a /tell formatted message and let the game handle it
                     if (target.ContentId == 0)
                     {
