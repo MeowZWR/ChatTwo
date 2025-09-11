@@ -30,5 +30,5 @@ public static class Sheets
 
     public static bool IsInForay() =>
         TerritorySheet.TryGetRow(Plugin.ClientState.TerritoryType, out var row) &&
-        row.TerritoryIntendedUse.RowId is 41 or 61;
+        row.TerritoryIntendedUse.RowId is 41 or 48 or 61;
 }

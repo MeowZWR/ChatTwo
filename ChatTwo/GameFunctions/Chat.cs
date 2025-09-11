@@ -239,7 +239,7 @@ internal sealed unsafe class Chat : IDisposable
             channel = (uint) InputChannel.Tell;
 
         var name = SeString.Parse(agent->ChannelLabel);
-        if (name.Payloads.Count == 0)
+        if (name == null || name.Payloads == null || name.Payloads.Count == 0)
             name = null;
 
         if (name == null)
@@ -253,10 +253,22 @@ internal sealed unsafe class Chat : IDisposable
         ushort worldId = 0;
         if (channel == (uint) InputChannel.Tell)
         {
-            playerName = SeString.Parse(agent->TellPlayerName).TextValue;
+            var tellNameSe = SeString.Parse(agent->TellPlayerName);
+            playerName = tellNameSe?.TextValue ?? string.Empty;
             worldId = agent->TellWorldId;
-            Plugin.Log.Debug($"Detected tell target '{playerName}'@{worldId}");
         }
+
+        // If we already established a Foray tell session, don't let the game relabel overwrite it
+        if (Plugin.ChatLogWindow != null && Plugin.ChatLogWindow.TellSpecial)
+            return ret;
+
+        // If ChatTwo is currently on a Mare linkshell channel (either fixed or temp),
+        // do not overwrite the current channel selection with the game's channel label
+        // update (which can be triggered by IME toggles). This prevents jumping back to
+        // the previous non-Mare channel when switching input method.
+        var current = Plugin.CurrentTab.CurrentChannel;
+        if (current.Channel.IsMareLinkshell() || (current.UseTempChannel && current.TempChannel.IsMareLinkshell()))
+            return ret;
 
         Plugin.CurrentTab.CurrentChannel = new UsedChannel
         {
@@ -431,7 +443,7 @@ internal sealed unsafe class Chat : IDisposable
         target->Dtor(true);
     }
 
-    internal void SetEurekaTellChannel(string name, string worldName, ushort worldId, ulong accountId, ulong objectId, ushort reason, bool setChatType)
+    internal void SetEurekaTellChannel(string name, string worldName, ushort worldId, ulong accountId, ulong objectId, ushort idSelector, bool setChatType)
     {
         // param6 is 0 for contentId and 1 for objectId
         // param7 is always 0 ?
@@ -446,7 +458,8 @@ internal sealed unsafe class Chat : IDisposable
         var utfName = Utf8String.FromString(name);
         var utfWorld = Utf8String.FromString(worldName);
 
-        RaptureShellModule.Instance()->SetTellTargetInForay(utfName, utfWorld, worldId, accountId, objectId, reason, setChatType);
+        // idSelector: 0 = use contentId, 1 = use objectId
+        RaptureShellModule.Instance()->SetTellTargetInForay(utfName, utfWorld, worldId, accountId, objectId, idSelector, setChatType);
 
         utfName->Dtor(true);
         utfWorld->Dtor(true);
