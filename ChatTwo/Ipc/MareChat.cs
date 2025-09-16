@@ -31,7 +31,7 @@ internal sealed class MareChat : IDisposable
             }
 
             // Register clickable chat link for Mare channel icon (\uE044)
-            OpenChatLinkPayload = Plugin.Interface.AddChatLinkHandler(10001, OnOpenChatLinkClicked);
+            OpenChatLinkPayload = Plugin.ChatGui.AddChatLinkHandler(10001, OnOpenChatLinkClicked);
         }
         catch
         {
