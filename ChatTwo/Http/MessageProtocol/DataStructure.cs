@@ -1,19 +1,47 @@
-﻿using Newtonsoft.Json;
+﻿using ChatTwo.Code;
+using Newtonsoft.Json;
 
 namespace ChatTwo.Http.MessageProtocol;
 
 #region Outgoing SSE
 /// <summary>
+/// Contains a valid tab with its assigned index
+/// </summary>
+public struct ChatTab(string name, int index, uint unreadCount)
+{
+    [JsonProperty("name")] public string Name = name;
+    [JsonProperty("index")] public int Index = index;
+    [JsonProperty("unreadCount")] public uint UnreadCount = unreadCount;
+}
+
+/// <summary>
+/// Contains a number of tabs that are valid for the user to pick from
+/// </summary>
+public struct ChatTabList(ChatTab[] tabs)
+{
+    [JsonProperty("tabs")] public ChatTab[] Tabs = tabs;
+}
+
+/// <summary>
+/// Contains a valid tab index and the current unread state as a number unread of messages
+/// </summary>
+public struct ChatTabUnreadState(int index, uint unreadCount)
+{
+    [JsonProperty("index")] public int Index = index;
+    [JsonProperty("unreadCount")] public uint UnreadCount = unreadCount;
+}
+
+/// <summary>
 /// Contains the current channel name
 /// </summary>
-public struct SwitchChannel((MessageTemplate[] ChannelName, bool Locked) channel)
+public struct SwitchChannel((MessageTemplate[] Name, bool Locked) channel)
 {
-    [JsonProperty("channelName")] public MessageTemplate[] ChannelName = channel.ChannelName;
+    [JsonProperty("channelName")] public MessageTemplate[] ChannelName = channel.Name;
     [JsonProperty("channelLocked")] public bool Locked = channel.Locked;
 }
 
 /// <summary>
-/// Contains one or multiple channels that are valid for the user to pick from
+/// Contains a number of channels that are valid for the user to pick from
 /// </summary>
 public struct ChannelList(Dictionary<string, uint> channels)
 {
@@ -50,7 +78,8 @@ public struct MessageTemplate()
     /// url = Simple url that should be clickable
     /// text = Simple text content of the message
     ///
-    /// empty = Ignore
+    /// Note:
+    /// Empty is used for invalid payloads
     /// </summary>
     [JsonProperty("payload")] public required string Payload;
 
@@ -60,14 +89,15 @@ public struct MessageTemplate()
     [JsonProperty("content")] public string Content = "";
 
     /// <summary>
-    /// Used for icon.
+    /// Used for an icon.
     /// </summary>
     [JsonProperty("id")] public uint Id;
 
     /// <summary>
     /// Used for text and url
     ///
-    /// Ignore if 0!
+    /// Note:
+    /// 0 is used for invalid colors
     /// </summary>
     [JsonProperty("color")] public uint Color;
 
@@ -99,10 +129,18 @@ public struct IncomingMessage()
 }
 
 /// <summary>
-/// Channel must be a valid uint number
+/// The channel type must be a valid <see cref="InputChannel"/>
 /// </summary>
 public struct IncomingChannel()
 {
-    [JsonProperty("channel")] public uint Channel = uint.MaxValue;
+    [JsonProperty("channel")] public InputChannel Channel = InputChannel.Invalid;
+}
+
+/// <summary>
+/// The tabs index must be a valid int
+/// </summary>
+public struct IncomingTab()
+{
+    [JsonProperty("index")] public int Index = -1;
 }
 #endregion

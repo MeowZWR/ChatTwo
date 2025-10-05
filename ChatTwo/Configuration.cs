@@ -120,7 +120,7 @@ internal class Configuration : IPluginConfiguration
     public bool WebinterfaceAutoStart;
     public string WebinterfacePassword = WebinterfaceUtil.GenerateSimpleAuthCode();
     public int WebinterfacePort = 9000;
-    public ConcurrentDictionary<string, bool> SessionTokens = [];
+    public HashSet<string> AuthStore = [];
     public int WebinterfaceMaxLinesToSend = 1000; // 1-10000
 
     // 拆分 Mare 相关配置，避免主配置含自定义枚举而不兼容上游
@@ -329,6 +329,7 @@ internal class Tab
     public bool HideWhenInactive;
 
     [NonSerialized] public uint Unread;
+    [NonSerialized] public uint LastSendUnread;
     [NonSerialized] public long LastActivity;
     [NonSerialized] public MessageList Messages = new();
 
@@ -343,8 +344,8 @@ internal class Tab
         Messages.AddPrune(message, MessageManager.MessageDisplayLimit);
         if (!unread)
             return;
-        Unread += 1;
 
+        Unread += 1;
         if (message.Matches(Plugin.Config.InactivityHideChannels!, Plugin.Config.InactivityHideExtraChatAll, Plugin.Config.InactivityHideExtraChatChannels))
             LastActivity = Environment.TickCount64;
     }
