@@ -40,6 +40,7 @@ namespace ChatTwo;
     [PluginService] internal static IGameConfig GameConfig { get; private set; } = null!;
     [PluginService] internal static INotificationManager Notification { get; private set; } = null!;
     [PluginService] internal static IAddonLifecycle AddonLifecycle { get; private set; } = null!;
+    [PluginService] internal static IPlayerState PlayerState { get; private set; } = null!;
 
     internal static Configuration Config = null!;
     internal static MareConfiguration MareCfg { get; private set; } = new MareConfiguration();
@@ -59,6 +60,7 @@ namespace ChatTwo;
     internal IpcManager Ipc { get; }
     internal ExtraChat ExtraChat { get; }
     internal Ipc.MareChat? MareChat { get; }
+    internal TypingIpc TypingIpc { get; }
     internal FontManager FontManager { get; }
 
     internal ServerCore ServerCore { get; }
@@ -122,7 +124,8 @@ namespace ChatTwo;
 
             Commands = new Commands(this);
             Functions = new GameFunctions.GameFunctions(this);
-            Ipc = new IpcManager(this);
+            Ipc = new IpcManager();
+            TypingIpc = new TypingIpc(this);
             ExtraChat = new ExtraChat(this);
             MareChat = new Ipc.MareChat(this);
             FontManager = new FontManager();
@@ -208,6 +211,7 @@ namespace ChatTwo;
         DebuggerWindow?.Dispose();
         SeStringDebugger?.Dispose();
 
+        TypingIpc?.Dispose();
         ExtraChat?.Dispose();
         MareChat?.Dispose();
         Ipc?.Dispose();
@@ -221,8 +225,14 @@ namespace ChatTwo;
 
     private void Draw()
     {
+        ChatLogWindow.BeginFrame();
+
         if (Config.HideInLoadingScreens && Condition[ConditionFlag.BetweenAreas])
+        {
+            ChatLogWindow.FinalizeFrame();
+            TypingIpc?.Update();
             return;
+        }
 
         ChatLogWindow.HideStateCheck();
 
@@ -233,6 +243,9 @@ namespace ChatTwo;
         {
             WindowSystem.Draw();
         }
+
+        ChatLogWindow.FinalizeFrame();
+        TypingIpc?.Update();
     }
 
     internal void SaveConfig()

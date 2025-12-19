@@ -841,6 +841,9 @@
   <data name="ChatType_Alarm">
     <value>闹钟通知信息</value>
   </data>
+  <data name="ChatType_Glamour">
+    <value>幻化提醒</value>
+  </data>
   <data name="ChatType_Echo">
     <value>默语</value>
   </data>

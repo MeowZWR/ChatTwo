@@ -1,4 +1,5 @@
-import { channelOptions, isChannelLocked, selectedTab, knownTabs, chatInput } from "$lib/shared.svelte";
+import { channelOptions, isChannelLocked, selectedTab, knownTabs, chatInput, messagesList, scrollMessagesToBottom } from "$lib/shared.svelte";
+import { WebPayloadType } from "$lib/payload";
 import { source, type Source } from "sveltekit-sse";
 
 interface ChatElements {
@@ -17,15 +18,16 @@ interface Messages {
 
 // ref `DataStructure.MessageResponse`
 interface MessageResponse {
+    id: string;
     timestamp: string;
     templates: Template[];
 }
 
 // ref `DataStructure.MessageTemplate`
 interface Template {
-    id: number;
-    payload: string;
+    payloadType: WebPayloadType;
     content: string;
+    iconId: number;
     color: number;
 }
 
@@ -62,7 +64,6 @@ interface ChatTabUnreadState {
 export class ChatTwoWeb {
     elements!: ChatElements;
     maxTimestampWidth: number = 0;
-    scrolledToBottom: boolean = true;
 
     sse!: EventSource;
     connection!: Source;
@@ -74,9 +75,6 @@ export class ChatTwoWeb {
 
     setupDOMElements() {
         this.elements = {
-            // channelHint: document.getElementById('channel-hint'),
-            // channelSelect: document.getElementById('channel-select'),
-
             messagesContainer: document.querySelector('#messages > .scroll-container')!,
             messagesList: document.getElementById('messages-list'),
 
@@ -84,6 +82,7 @@ export class ChatTwoWeb {
 
             inputForm: document.querySelector('#input > form'),
         };
+        messagesList.element = this.elements.messagesList;
 
         // add indicator signaling more messages below
         this.elements.messagesContainer?.addEventListener('scroll', (event) => {
@@ -100,8 +99,8 @@ export class ChatTwoWeb {
 
         // adjust scroll when the window size changes; mostly for mobile (opening/closing the keyboard)
         window.addEventListener('resize', () => {
-            if (this.scrolledToBottom) {
-                this.scrollMessagesToBottom();
+            if (messagesList.scrolledToBottom) {
+                scrollMessagesToBottom();
             }
         })
 
@@ -129,21 +128,17 @@ export class ChatTwoWeb {
 
     messagesAreScrolledToBottom() {
         if (this.elements.messagesContainer === null) {
-            return this.scrolledToBottom;
+            return messagesList.scrolledToBottom;
         }
 
-        if (this.elements.messagesContainer.scrollTopMax) {
-            this.scrolledToBottom = this.elements.messagesContainer.scrollTop === this.elements.messagesContainer.scrollTopMax;
-        } else {
-            this.scrolledToBottom =
-                (
-                    this.elements.messagesContainer.scrollHeight -
-                    this.elements.messagesContainer.clientHeight -
-                    this.elements.messagesContainer.scrollTop
-                ) < 1;
-        }
+        messagesList.scrolledToBottom =
+            (
+                this.elements.messagesContainer.scrollHeight -
+                this.elements.messagesContainer.clientHeight -
+                this.elements.messagesContainer.scrollTop
+            ) < 1;
 
-        return this.scrolledToBottom;
+        return messagesList.scrolledToBottom;
     }
 
     updateChannelHint(channel: SwitchChannel) {
@@ -183,20 +178,6 @@ export class ChatTwoWeb {
         }
     }
 
-    scrollMessagesToBottom() {
-        if (this.elements.messagesContainer === null || this.elements.messagesList === null)
-            return;
-
-        if (this.elements.messagesContainer.scrollTopMax) {
-            this.elements.messagesContainer.scrollTop = this.elements.messagesContainer.scrollTopMax;
-        } else {
-            if (this.elements.messagesList.lastElementChild === null)
-                return;
-
-            this.elements.messagesList.lastElementChild.scrollIntoView();
-        }
-    }
-
     addMessage(messageData: MessageResponse) {
         if (this.elements.messagesList === null)
             return;
@@ -218,7 +199,7 @@ export class ChatTwoWeb {
         this.elements.messagesList.appendChild(liMessage);
 
         if (scrolledToBottom) {
-            this.scrollMessagesToBottom();
+            scrollMessagesToBottom();
         }
     }
 
@@ -227,20 +208,20 @@ export class ChatTwoWeb {
 
         for( const template of templates ) {
             const spanElement = document.createElement('span');
-            switch (template.payload) {
-                case 'text':
+            switch (template.payloadType) {
+                case WebPayloadType.RawText:
                     this.processTextTemplate(template, spanElement);
                     break;
-                case 'url':
+                case WebPayloadType.CustomUri:
                     this.processUrlTemplate(template, spanElement);
                     break;
-                case 'emote':
+                case WebPayloadType.CustomEmote:
                     this.processEmote(template, spanElement);
                     break;
-                case 'icon':
+                case WebPayloadType.Icon:
                     this.processIcon(template, spanElement);
                     break;
-                case 'empty':
+                default:
                     continue;
             }
 
@@ -290,7 +271,7 @@ export class ChatTwoWeb {
 
     processIcon(template: Template, spanElement: HTMLSpanElement) {
         spanElement.classList.add('gfd-icon');
-        spanElement.classList.add(`gfd-icon-hq-${template.id}`);
+        spanElement.classList.add(`gfd-icon-hq-${template.iconId}`);
     }
 
     clearAllMessages() {
@@ -396,10 +377,18 @@ export class ChatTwoWeb {
 
         // the unread state of a specific tab has changed
         this.connection.select('tab-unread-state').subscribe((data: string) => {
-            console.log(`tab-unread-state: ${data}`)
+            console.log(`tab-unread-state`, data)
             if (data) {
                 try {
                     const chatTabUnreadState: ChatTabUnreadState = JSON.parse(data);
+                    let tab = knownTabs.find((tab) => tab.index === chatTabUnreadState.index);
+                    if (tab) {
+                        tab.unreadCount = chatTabUnreadState.unreadCount;
+                    }
+                    else {
+                        console.error("Unable to find tab!")
+                        console.error(chatTabUnreadState)
+                    }
                 } catch (error) {
                     console.error(error);
                 }

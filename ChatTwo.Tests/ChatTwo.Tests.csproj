@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net9.0-windows</TargetFrameworks>
+    <TargetFrameworks>net10.0-windows</TargetFrameworks>
 
     <IsPackable>false</IsPackable>
   </PropertyGroup>
@@ -36,10 +36,6 @@
         </Reference>
         <Reference Include="FFXIVClientStructs">
             <HintPath>$(DalamudLibPath)\FFXIVClientStructs.dll</HintPath>
-            <Private>false</Private>
-        </Reference>
-        <Reference Include="ImGui.NET">
-            <HintPath>$(DalamudLibPath)\ImGui.NET.dll</HintPath>
             <Private>false</Private>
         </Reference>
         <Reference Include="Lumina">

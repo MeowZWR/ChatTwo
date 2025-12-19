@@ -31,6 +31,7 @@ public class Processing
     {
         var response = new MessageResponse
         {
+            Id = message.Id,
             Timestamp = message.Date.ToLocalTime().ToString("t", !Plugin.Config.Use24HourClock ? null : CultureInfo.CreateSpecificCulture("es-ES"))
         };
 
@@ -46,7 +47,7 @@ public class Processing
         if (chunk is IconChunk { } icon)
         {
             var iconId = (uint)icon.Icon;
-            return IconUtil.GfdFileView.TryGetEntry(iconId, out _) ? new MessageTemplate {Payload = "icon", Id = iconId}: MessageTemplate.Empty;
+            return IconUtil.GfdFileView.TryGetEntry(iconId, out _) ? new MessageTemplate {PayloadType = WebPayloadType.Icon, IconId = iconId}: MessageTemplate.Empty;
         }
 
         if (chunk is TextChunk { } text)
@@ -56,7 +57,7 @@ public class Processing
                 var image = EmoteCache.GetEmote(emotePayload.Code);
 
                 if (image is { Failed: false })
-                    return new MessageTemplate { Payload = "emote", Color = 0, Content = emotePayload.Code };
+                    return new MessageTemplate { PayloadType = WebPayloadType.CustomEmote, Color = 0, Content = emotePayload.Code };
             }
 
             var color = text.Foreground;
@@ -73,12 +74,12 @@ public class Processing
             {
                 if (chunk.Link is PlayerPayload playerPayload)
                     userContent = HostContext.Core.Plugin.ChatLogWindow.HidePlayerInString(userContent, playerPayload.PlayerName, playerPayload.World.RowId);
-                else if (Plugin.ClientState.LocalPlayer is { } player)
+                else if (Plugin.ObjectTable.LocalPlayer is { } player)
                     userContent = HostContext.Core.Plugin.ChatLogWindow.HidePlayerInString(userContent, player.Name.TextValue, player.HomeWorld.RowId);
             }
 
             var isNotUrl = text.Link is not UriPayload;
-            return new MessageTemplate { Payload = isNotUrl ? "text" : "url", Color = color.Value, Content = userContent };
+            return new MessageTemplate { PayloadType = isNotUrl ? WebPayloadType.RawText : WebPayloadType.CustomUri, Color = color.Value, Content = userContent };
         }
 
         return MessageTemplate.Empty;
