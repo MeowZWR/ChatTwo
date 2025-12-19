@@ -124,10 +124,10 @@ namespace ChatTwo;
 
             Commands = new Commands(this);
             Functions = new GameFunctions.GameFunctions(this);
-            Ipc = new IpcManager();
+            Ipc = new IpcManager(this);
             TypingIpc = new TypingIpc(this);
             ExtraChat = new ExtraChat(this);
-            MareChat = new Ipc.MareChat(this);
+            MareChat = new MareChat(this);
             FontManager = new FontManager();
 
             ChatLogWindow = new ChatLogWindow(this);
