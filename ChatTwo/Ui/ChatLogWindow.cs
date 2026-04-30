@@ -20,6 +20,7 @@ using Dalamud.Memory;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using Dalamud.Bindings.ImGui;
 using Lumina.Excel.Sheets;
+using Lumina.Extensions;
 
 namespace ChatTwo.Ui;
 
@@ -68,7 +69,7 @@ public sealed class ChatLogWindow : Window
     public PayloadHandler PayloadHandler { get; }
     internal Lender<PayloadHandler> HandlerLender { get; }
     private Dictionary<string, ChatType> TextCommandChannels { get; } = new();
-    private HashSet<string> AllCommands { get; } = [];
+    private Dictionary<string, TextCommand> AllCommands { get; } = [];
 
     private const uint ChatOpenSfx = 35u;
     private const uint ChatCloseSfx = 3u;
@@ -202,7 +203,7 @@ public sealed class ChatLogWindow : Window
                         if (Sheets.IsInForay())
                         {
                             var worldName = target.ToWorldString();
-                            Plugin.Functions.Chat.SetEurekaTellChannel(target.Name, worldName, target.World, 0, target.ContentId, 0, info.Permanent);
+                            Plugin.Functions.Chat.SetEurekaTellChannel(target.Name, worldName, (ushort)target.World, 0, target.ContentId, 0, info.Permanent);
                         }
                     }
                 }
@@ -260,7 +261,7 @@ public sealed class ChatLogWindow : Window
 
     private bool IsValidCommand(string command)
     {
-        return Plugin.CommandManager.Commands.ContainsKey(command) || AllCommands.Contains(command);
+        return Plugin.CommandManager.Commands.ContainsKey(command) || AllCommands.ContainsKey(command);
     }
 
     private void ClearLog(string command, string arguments)
@@ -310,7 +311,7 @@ public sealed class ChatLogWindow : Window
 
         foreach (var input in Enum.GetValues<InputChannel>())
         {
-            var commands = input.TextCommands(Plugin.DataManager);
+            var commands = input.TextCommands();
             if (commands == null)
                 continue;
 
@@ -319,11 +320,8 @@ public sealed class ChatLogWindow : Window
                 AddTextCommandChannel(command, type);
         }
 
-        if (Sheets.TextCommandSheet.HasRow(116))
-        {
-            var echo = Sheets.TextCommandSheet.GetRow(116);
-            AddTextCommandChannel(echo, ChatType.Echo);
-        }
+        if (Sheets.TextCommandSheet.TryGetRow(116, out var row))
+            AddTextCommandChannel(row, ChatType.Echo);
     }
 
     private void AddTextCommandChannel(TextCommand command, ChatType type)
@@ -336,19 +334,20 @@ public sealed class ChatLogWindow : Window
 
     private void SetUpAllCommands()
     {
-        if (Plugin.DataManager.GetExcelSheet<TextCommand>() is not { } commands)
-            return;
-
-        var commandNames = commands.SelectMany(cmd => new[]
+        foreach (var command in Sheets.TextCommandSheet)
         {
-            cmd.Command.ExtractText(),
-            cmd.ShortCommand.ExtractText(),
-            cmd.Alias.ExtractText(),
-            cmd.ShortAlias.ExtractText(),
-        });
+            if (!command.Command.IsEmpty)
+                AllCommands.TryAdd(command.Command.ToString(), command);
 
-        foreach (var command in commandNames)
-            AllCommands.Add(command);
+            if (!command.ShortCommand.IsEmpty)
+                AllCommands.TryAdd(command.ShortCommand.ToString(), command);
+
+            if (!command.Alias.IsEmpty)
+                AllCommands.TryAdd(command.Alias.ToString(), command);
+
+            if (!command.ShortAlias.IsEmpty)
+                AllCommands.TryAdd(command.ShortAlias.ToString(), command);
+        }
     }
 
     private void AddBacklog(string message)
@@ -662,8 +661,7 @@ public sealed class ChatLogWindow : Window
             {
                 ImGui.SetNextWindowSize(new Vector2(500 * ImGuiHelpers.GlobalScale, -1));
                 using var tooltip = ImRaii.Tooltip();
-                if (tooltip)
-                    Plugin.InputPreview.DrawPreview();
+                Plugin.InputPreview.DrawPreview();
             }
 
             if (ImGui.IsItemDeactivated())
@@ -758,7 +756,7 @@ public sealed class ChatLogWindow : Window
             if (!channel.IsValid())
                 continue;
 
-            var name = Sheets.LogFilterSheet.FirstOrNull(row => row.LogKind == (byte) channel.ToChatType())?.Name.ExtractText() ?? channel.ToChatType().Name();
+            var name = Sheets.LogFilterSheet.FirstOrNull(row => row.LogKind == (byte) channel.ToChatType())?.Name.ToString() ?? channel.ToChatType().Name();
             if (channel.IsLinkshell())
             {
                 var lsName = Plugin.Functions.Chat.GetLinkshellName(channel.LinkshellIndex());
@@ -808,7 +806,7 @@ public sealed class ChatLogWindow : Window
         if (!currentChannel.SequenceEqual(PreviousChannel))
         {
             PreviousChannel = currentChannel;
-            Plugin.ServerCore?.SendChannelSwitch(currentChannel);
+            Plugin.ServerCore.SendChannelSwitch(currentChannel);
         }
 
         DrawChunks(currentChannel);
@@ -859,33 +857,44 @@ public sealed class ChatLogWindow : Window
         }
         else if (activeTab is { Channel: { } channel })
         {
-            // We cannot lookup ExtraChat channel names from index over
-            // IPC so we just don't show the name if it's the tabs channel.
-            //
-            // We don't call channel.ToChatType().Name() as it has the
-            // long name as used in the settings window.
-            if (channel.IsExtraChatLinkshell())
-                channelNameChunks = [new TextChunk(ChunkSource.None, null, $"ECLS [{channel.LinkshellIndex() + 1}]")];
-            else if (channel.IsMareLinkshell())
+            if (channel == InputChannel.Tell && activeTab.TellTarget.IsSet())
             {
-                var idx = (int)channel.LinkshellIndex();
-                var mareName = Plugin.MareChat?.GetChannelName(idx) ?? "";
-                var text = string.IsNullOrEmpty(mareName) ? $"\uE044 [{idx + 1}]" : $"\uE044 [{idx + 1}]: {mareName}";
-                var ime = Plugin.Functions.Chat.GetImePrefixChunks();
-                if (ime.Count > 0)
+                channelNameChunks = GenerateTellTargetName(activeTab.TellTarget);
+            }
+            else
+            {
+                // We cannot lookup ExtraChat channel names from index over
+                // IPC so we just don't show the name if it's the tabs channel.
+                //
+                // We don't call channel.ToChatType().Name() as it has the
+                // long name as used in the settings window.
+                if (channel.IsExtraChatLinkshell())
                 {
-                    var list = new List<Chunk>(ime.Count + 1);
-                    list.AddRange(ime);
-                    list.Add(new TextChunk(ChunkSource.None, null, text));
-                    channelNameChunks = list.ToArray();
+                    channelNameChunks = [new TextChunk(ChunkSource.None, null, $"ECLS [{channel.LinkshellIndex() + 1}]")];
+                }
+                else if (channel.IsMareLinkshell())
+                {
+                    var idx = (int)channel.LinkshellIndex();
+                    var mareName = Plugin.MareChat?.GetChannelName(idx) ?? "";
+                    var text = string.IsNullOrEmpty(mareName) ? $"\uE044 [{idx + 1}]" : $"\uE044 [{idx + 1}]: {mareName}";
+                    var ime = Plugin.Functions.Chat.GetImePrefixChunks();
+                    if (ime.Count > 0)
+                    {
+                        var list = new List<Chunk>(ime.Count + 1);
+                        list.AddRange(ime);
+                        list.Add(new TextChunk(ChunkSource.None, null, text));
+                        channelNameChunks = list.ToArray();
+                    }
+                    else
+                    {
+                        channelNameChunks = [new TextChunk(ChunkSource.None, null, text)];
+                    }
                 }
                 else
                 {
-                    channelNameChunks = [new TextChunk(ChunkSource.None, null, text)];
+                    channelNameChunks = [new TextChunk(ChunkSource.None, null, channel.ToChatType().Name())];
                 }
             }
-            else
-                channelNameChunks = [new TextChunk(ChunkSource.None, null, channel.ToChatType().Name())];
         }
         else if (Plugin.ExtraChat.ChannelOverride is var (overrideName, _))
         {
@@ -1002,7 +1011,7 @@ public sealed class ChatLogWindow : Window
             playerName = HashPlayer(tellTarget.Name, tellTarget.World);
 
         var world = Sheets.WorldSheet.TryGetRow(tellTarget.World, out var worldRow)
-            ? worldRow.Name.ExtractText()
+            ? worldRow.Name.ToString()
             : "???";
 
         return
@@ -1022,13 +1031,19 @@ public sealed class ChatLogWindow : Window
             AddBacklog(trimmed);
             InputBacklogIdx = -1;
 
+            if (HasTranslationCommand(trimmed))
+            {
+                activeTab.CurrentChannel.ResetTempChannel();
+                Chat = string.Empty;
+                return;
+            }
+
             if (TellSpecial)
             {
                 var tellBytes = Encoding.UTF8.GetBytes(trimmed);
                 AutoTranslate.ReplaceWithPayload(ref tellBytes);
 
                 Plugin.Functions.Chat.SendTellUsingCommandInner(tellBytes);
-
                 TellSpecial = false;
 
                 activeTab.CurrentChannel.ResetTempChannel();
@@ -1038,7 +1053,7 @@ public sealed class ChatLogWindow : Window
 
             if (!trimmed.StartsWith('/'))
             {
-                var target = activeTab.CurrentChannel.TempTellTarget ?? activeTab.CurrentChannel.TellTarget;
+                var target = activeTab.TellTarget.IsSet() ? activeTab.TellTarget : activeTab.CurrentChannel.TempTellTarget ?? activeTab.CurrentChannel.TellTarget;
                 if (target != null)
                 {
                     // Foray: ensure session and send via ExecuteCommandInner regardless of focus changes
@@ -1055,7 +1070,7 @@ public sealed class ChatLogWindow : Window
                                 contentIdToUse = hist.ContentId;
                         }
 
-                        Plugin.Functions.Chat.SetEurekaTellChannel(target.Name, worldName, target.World, 0, contentIdToUse, 0, true);
+                        Plugin.Functions.Chat.SetEurekaTellChannel(target.Name, worldName, (ushort)target.World, 0, contentIdToUse, 0, true);
 
                         var tellBytes = Encoding.UTF8.GetBytes(trimmed);
                         AutoTranslate.ReplaceWithPayload(ref tellBytes);
@@ -1124,6 +1139,18 @@ public sealed class ChatLogWindow : Window
 
         activeTab.CurrentChannel.ResetTempChannel();
         Chat = string.Empty;
+    }
+
+    private bool HasTranslationCommand(string trimmed)
+    {
+        var messageBytes = Encoding.UTF8.GetBytes(trimmed);
+        if (AutoTranslate.StartsWithCommand(ref messageBytes))
+        {
+            ChatBox.SendMessageUnsafe(messageBytes);
+            return true;
+        }
+
+        return false;
     }
 
     internal void UserHide()
@@ -1618,10 +1645,11 @@ public sealed class ChatLogWindow : Window
                     var button = (i + 1) % 10;
                     var text = string.Format(Language.AutoTranslate_Completion_Key, button);
                     var size = ImGui.CalcTextSize(text);
+
                     ImGui.SameLine(ImGui.GetContentRegionAvail().X - size.X);
-                    ImGui.PushStyleColor(ImGuiCol.Text, *ImGui.GetStyleColorVec4(ImGuiCol.TextDisabled));
-                    ImGui.TextUnformatted(text);
-                    ImGui.PopStyleColor();
+
+                    using (ImRaii.PushColor(ImGuiCol.Text, ImGui.GetStyle().Colors[(int)ImGuiCol.TextDisabled]))
+                        ImGui.TextUnformatted(text);
                 }
 
                 if (!clicked)
@@ -1782,12 +1810,10 @@ public sealed class ChatLogWindow : Window
         if (text.StartsWith('/'))
         {
             var command = text.Split(' ')[0];
-            var cmd = Sheets.TextCommandSheet.FirstOrNull(cmd =>
-                cmd.Command.ExtractText() == command || cmd.Alias.ExtractText() == command ||
-                cmd.ShortCommand.ExtractText() == command || cmd.ShortAlias.ExtractText() == command);
-
-            if (cmd != null)
-                Plugin.CommandHelpWindow.UpdateContent(cmd.Value);
+            if (AllCommands.TryGetValue(command, out var textCommand))
+                Plugin.CommandHelpWindow.UpdateContent(textCommand.Description);
+            else if (Plugin.CommandManager.Commands.TryGetValue(command, out var info) && info.ShowInHelp)
+                Plugin.CommandHelpWindow.UpdateContent(info.HelpMessage);
         }
 
         if (data.EventFlag != ImGuiInputTextFlags.CallbackHistory)

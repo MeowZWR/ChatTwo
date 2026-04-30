@@ -1,112 +1,36 @@
+using Dalamud.Game.Text;
+
 namespace ChatTwo.Code;
 
-internal class ChatCode
+public class ChatCode
 {
-    private const ushort Clear7 = ~(~0 << 7);
-    private const ushort CustomSentinel = 0x8000;
+    public ChatType Type { get; }
+    public XivChatRelationKind Source { get; }
+    public XivChatRelationKind Target { get; }
 
-    internal ushort Raw { get; }
-
-    internal ChatType Type { get; }
-    internal ChatSource Source { get; }
-    internal ChatSource Target { get; }
-    private ChatSource SourceFrom(ushort shift) => (ChatSource) (1 << ((Raw >> shift) & 0xF));
-
-    internal ChatCode(ushort raw)
+    public ChatCode(XivChatType type, XivChatRelationKind source, XivChatRelationKind target)
     {
-        Raw = raw;
-        // Prefer high-bit sentinel for ChatTwo custom channels to avoid collisions with game-composed codes.
-        if ((raw & CustomSentinel) != 0)
-        {
-            Type = (ChatType)(raw & ~CustomSentinel);
-            Source = 0;
-            Target = 0;
-        }
-        // Back-compat: detect legacy custom codes that were stored without sentinel
-        else if (((ChatType)raw).IsExtraChatLinkshell() || ((ChatType)raw).IsMareLinkshell())
-        {
-            Type = (ChatType)raw;
-            Source = 0;
-            Target = 0;
-        }
-        else
-        {
-            Type = (ChatType)(Raw & Clear7);
-            Source = SourceFrom(11);
-            Target = SourceFrom(7);
-        }
+        Type = (ChatType)type;
+        Source = source;
+        Target = target;
     }
 
-    internal static ushort EncodeCustomRaw(ChatType type)
+    public ChatCode(ChatType type, XivChatRelationKind source, XivChatRelationKind target)
     {
-        return (ushort)(CustomSentinel | (ushort)type);
+        Type = type;
+        Source = source;
+        Target = target;
     }
 
     internal static ChatCode FromCustom(ChatType type)
     {
-        return new ChatCode(EncodeCustomRaw(type));
+        return new ChatCode(type, 0, 0);
     }
 
-    internal ChatType Parent() => Type switch
-    {
-        ChatType.Say => ChatType.Say,
-        ChatType.GmSay => ChatType.Say,
-        ChatType.Shout => ChatType.Shout,
-        ChatType.GmShout => ChatType.Shout,
-        ChatType.TellOutgoing => ChatType.TellOutgoing,
-        ChatType.TellIncoming => ChatType.TellOutgoing,
-        ChatType.GmTell => ChatType.TellOutgoing,
-        ChatType.Party => ChatType.Party,
-        ChatType.CrossParty => ChatType.Party,
-        ChatType.GmParty => ChatType.Party,
-        ChatType.Linkshell1 => ChatType.Linkshell1,
-        ChatType.GmLinkshell1 => ChatType.Linkshell1,
-        ChatType.Linkshell2 => ChatType.Linkshell2,
-        ChatType.GmLinkshell2 => ChatType.Linkshell2,
-        ChatType.Linkshell3 => ChatType.Linkshell3,
-        ChatType.GmLinkshell3 => ChatType.Linkshell3,
-        ChatType.Linkshell4 => ChatType.Linkshell4,
-        ChatType.GmLinkshell4 => ChatType.Linkshell4,
-        ChatType.Linkshell5 => ChatType.Linkshell5,
-        ChatType.GmLinkshell5 => ChatType.Linkshell5,
-        ChatType.Linkshell6 => ChatType.Linkshell6,
-        ChatType.GmLinkshell6 => ChatType.Linkshell6,
-        ChatType.Linkshell7 => ChatType.Linkshell7,
-        ChatType.GmLinkshell7 => ChatType.Linkshell7,
-        ChatType.Linkshell8 => ChatType.Linkshell8,
-        ChatType.GmLinkshell8 => ChatType.Linkshell8,
-        ChatType.FreeCompany => ChatType.FreeCompany,
-        ChatType.GmFreeCompany => ChatType.FreeCompany,
-        ChatType.NoviceNetwork => ChatType.NoviceNetwork,
-        ChatType.GmNoviceNetwork => ChatType.NoviceNetwork,
-        ChatType.CustomEmote => ChatType.CustomEmote,
-        ChatType.StandardEmote => ChatType.StandardEmote,
-        ChatType.Yell => ChatType.Yell,
-        ChatType.GmYell => ChatType.Yell,
-        ChatType.GainBuff => ChatType.GainBuff,
-        ChatType.LoseBuff => ChatType.GainBuff,
-        ChatType.GainDebuff => ChatType.GainDebuff,
-        ChatType.LoseDebuff => ChatType.GainDebuff,
-        ChatType.System => ChatType.System,
-        ChatType.Alarm => ChatType.System,
-        ChatType.GlamourNotifications => ChatType.System,
-        ChatType.RetainerSale => ChatType.System,
-        ChatType.PeriodicRecruitmentNotification => ChatType.System,
-        ChatType.Sign => ChatType.System,
-        ChatType.Orchestrion => ChatType.System,
-        ChatType.MessageBook => ChatType.System,
-        ChatType.NpcDialogue => ChatType.NpcDialogue,
-        ChatType.NpcAnnouncement => ChatType.NpcDialogue,
-        ChatType.LootRoll => ChatType.LootRoll,
-        ChatType.RandomNumber => ChatType.LootRoll,
-        ChatType.FreeCompanyAnnouncement => ChatType.FreeCompanyAnnouncement,
-        ChatType.FreeCompanyLoginLogout => ChatType.FreeCompanyAnnouncement,
-        ChatType.PvpTeamAnnouncement => ChatType.PvpTeamAnnouncement,
-        ChatType.PvpTeamLoginLogout => ChatType.PvpTeamAnnouncement,
-        _ => Type,
-    };
+    public ChatCode(int type, int source, int target)
+        : this((ChatType)type, (XivChatRelationKind)source, (XivChatRelationKind)target) {}
 
-    internal bool IsBattle()
+    public bool IsBattle()
     {
         switch (Type)
         {
@@ -129,7 +53,7 @@ internal class ChatCode
         }
     }
 
-    internal bool IsPlayerMessage()
+    public bool IsPlayerMessage()
     {
         switch (Type)
         {
@@ -178,5 +102,26 @@ internal class ChatCode
             default:
                 return false;
         }
+    }
+
+    public int ToSortCodeV2()
+    {
+        return (int)Type << 16 | (byte)Source << 8 | (byte)Target;
+    }
+
+    public override bool Equals(object? obj)
+    {
+        if (obj == null)
+            return false;
+
+        if (obj is not ChatCode code)
+            return false;
+
+        return GetHashCode() == code.GetHashCode();
+    }
+
+    public override int GetHashCode()
+    {
+        return ToSortCodeV2();
     }
 }

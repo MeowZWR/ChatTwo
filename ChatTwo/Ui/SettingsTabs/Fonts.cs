@@ -3,6 +3,7 @@ using ChatTwo.Util;
 using Dalamud;
 using Dalamud.Interface.FontIdentifier;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface.Utility.Raii;
 
 namespace ChatTwo.Ui.SettingsTabs;
 
@@ -19,7 +20,7 @@ public class Fonts : ISettingsTab
 
     public void Draw(bool _)
     {
-        using var wrap = ImGuiUtil.TextWrapPos();
+        using var wrap = ImRaii.TextWrapPos(0.0f);
 
         ImGui.Checkbox(Language.Options_FontsEnabled, ref Mutable.FontsEnabled);
         ImGui.Spacing();
@@ -38,7 +39,7 @@ public class Fonts : ISettingsTab
             });
             ImGui.SameLine();
             if (ImGui.Button("Reset##global"))
-                Mutable.GlobalFontV2 = new SingleFontSpec{ FontId = new DalamudAssetFontAndFamilyId(DalamudAsset.NotoSansKrRegular), SizePt = 12.75f };
+                Mutable.GlobalFontV2 = new SingleFontSpec{ FontId = new DalamudAssetFontAndFamilyId(DalamudAsset.NotoSansCjkRegular), SizePt = 12.75f };
 
             ImGuiUtil.HelpText(string.Format(Language.Options_Font_Description, Plugin.PluginName));
             ImGuiUtil.WarningText(Language.Options_Font_Warning);
@@ -53,7 +54,7 @@ public class Fonts : ISettingsTab
             });
             ImGui.SameLine();
             if (ImGui.Button("Reset##japanese"))
-                Mutable.JapaneseFontV2 = new SingleFontSpec{ FontId = new DalamudAssetFontAndFamilyId(DalamudAsset.NotoSansJpMedium), SizePt = 12.75f };
+                Mutable.JapaneseFontV2 = new SingleFontSpec{ FontId = new DalamudAssetFontAndFamilyId(DalamudAsset.NotoSansCjkMedium), SizePt = 12.75f };
 
             ImGuiUtil.HelpText(string.Format(Language.Options_JapaneseFont_Description, Plugin.PluginName));
             ImGui.Spacing();
@@ -68,7 +69,7 @@ public class Fonts : ISettingsTab
             if (ImGui.Button("Reset##italic"))
             {
                 Mutable.ItalicEnabled = false;
-                Mutable.ItalicFontV2 = new SingleFontSpec{ FontId = new DalamudAssetFontAndFamilyId(DalamudAsset.NotoSansKrRegular), SizePt = 12.75f };
+                Mutable.ItalicFontV2 = new SingleFontSpec{ FontId = new DalamudAssetFontAndFamilyId(DalamudAsset.NotoSansCjkRegular), SizePt = 12.75f };
             }
 
             ImGuiUtil.HelpText(string.Format(Language.Options_Italic_Description, Plugin.PluginName));

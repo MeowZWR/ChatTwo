@@ -1,4 +1,5 @@
-﻿using Lumina.Excel;
+﻿using Dalamud.Game.ClientState.Objects.SubKinds;
+using Lumina.Excel;
 using Lumina.Excel.Sheets;
 
 namespace ChatTwo;
@@ -8,6 +9,7 @@ public static class Sheets
     public static readonly ExcelSheet<Item> ItemSheet;
     public static readonly ExcelSheet<World> WorldSheet;
     public static readonly ExcelSheet<Status> StatusSheet;
+    public static readonly ExcelSheet<LogKind> LogKindSheet;
     public static readonly ExcelSheet<LogFilter> LogFilterSheet;
     public static readonly ExcelSheet<EventItem> EventItemSheet;
     public static readonly ExcelSheet<Completion> CompletionSheet;
@@ -20,8 +22,9 @@ public static class Sheets
         ItemSheet = Plugin.DataManager.GetExcelSheet<Item>();
         WorldSheet = Plugin.DataManager.GetExcelSheet<World>();
         StatusSheet = Plugin.DataManager.GetExcelSheet<Status>();
-        EventItemSheet = Plugin.DataManager.GetExcelSheet<EventItem>();
+        LogKindSheet = Plugin.DataManager.GetExcelSheet<LogKind>();
         LogFilterSheet = Plugin.DataManager.GetExcelSheet<LogFilter>();
+        EventItemSheet = Plugin.DataManager.GetExcelSheet<EventItem>();
         CompletionSheet = Plugin.DataManager.GetExcelSheet<Completion>();
         TerritorySheet = Plugin.DataManager.GetExcelSheet<TerritoryType>();
         TextCommandSheet = Plugin.DataManager.GetExcelSheet<TextCommand>();
@@ -31,4 +34,10 @@ public static class Sheets
     public static bool IsInForay() =>
         TerritorySheet.TryGetRow(Plugin.ClientState.TerritoryType, out var row) &&
         row.TerritoryIntendedUse.RowId is 41 or 48 or 61;
+
+    public static IEnumerable<World> WorldsOnDatacenter(IPlayerCharacter character)
+    {
+        var region = character.HomeWorld.Value.DataCenter.Value.Region;
+        return WorldSheet.Where(world => world.IsPublic && world.DataCenter.Value.Region == region);
+    }
 }

@@ -23,7 +23,6 @@ public class FontManager
     private ushort[] Ranges = null!;
     private ushort[] JpRange = null!;
 
-
     public static readonly HashSet<float> AxisFontSizeList =
     [
         9.6f, 10f, 12f, 14f, 16f,
@@ -72,10 +71,15 @@ public class FontManager
                 }
             }
 
+            // Ingame supported ranges
+            var reader = new FdtReader(Plugin.DataManager.GetFile("common/font/axis_12.fdt")!.Data);
+            foreach (var c in reader.Glyphs)
+                builder.AddChar(c.Char);
+
             // various symbols
             // French
             // Romanian
-            builder.AddText("←→↑↓《》■※☀★★☆♥♡ヅツッシ☀☁☂℃℉°♀♂♠♣♦♣♧®©™€$£♯♭♪✓√◎◆◇♦■□〇●△▽▼▲‹›≤≥<«“”─＼～");
+            // builder.AddText("←→↑↓《》■※☀★★☆♥♡ヅツッシ☀☁☂℃℉°♀♂♠♣♦♣♧®©™€$£♯♭♪✓√◎◆◇♦■□〇●△▽▼▲‹›≤≥<«“”─＼～");
             builder.AddText("Œœ");
             builder.AddText("ĂăÂâÎîȘșȚț");
 

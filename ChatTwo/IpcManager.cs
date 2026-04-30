@@ -12,7 +12,7 @@ internal sealed class IpcManager : IDisposable
     private Plugin PluginRef { get; }
     private ICallGateProvider<string> RegisterGate { get; }
     private ICallGateProvider<string, object?> UnregisterGate { get; }
-        private ICallGateProvider<(int major, int minor)> ApiVersionGate { get; }
+    private ICallGateProvider<(int major, int minor)> ApiVersionGate { get; }
     private ICallGateProvider<object?> AvailableGate { get; }
     private ICallGateProvider<string, PlayerPayload?, ulong, Payload?, SeString?, SeString?, object?> InvokeGate { get; }
     private ICallGateProvider<int, string, string, DateTime, object?> MarePushGate { get; }
@@ -26,9 +26,9 @@ internal sealed class IpcManager : IDisposable
         RegisterGate = Plugin.Interface.GetIpcProvider<string>("ChatTwo.Register");
         RegisterGate.RegisterFunc(Register);
 
-            // Read-only API for availability/version checks
-            ApiVersionGate = Plugin.Interface.GetIpcProvider<(int, int)>("ChatTwo.ApiVersion");
-            ApiVersionGate.RegisterFunc(GetApiVersion);
+        // Read-only API for availability/version checks
+        ApiVersionGate = Plugin.Interface.GetIpcProvider<(int, int)>("ChatTwo.ApiVersion");
+        ApiVersionGate.RegisterFunc(GetApiVersion);
 
         AvailableGate = Plugin.Interface.GetIpcProvider<object?>("ChatTwo.Available");
 
@@ -69,7 +69,7 @@ internal sealed class IpcManager : IDisposable
     {
         UnregisterGate.UnregisterFunc();
         RegisterGate.UnregisterFunc();
-            ApiVersionGate.UnregisterFunc();
+        ApiVersionGate.UnregisterFunc();
         MarePushGate.UnregisterAction();
         MareChannelsUpdatedGate.UnregisterAction();
         Registered.Clear();

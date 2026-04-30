@@ -2,7 +2,7 @@
 
 public class ColorPayload
 {
-    private const byte START_BYTE = 2;
+    private const byte StartByte = 2;
 
     public bool Enabled;
     public uint Color;
@@ -11,7 +11,7 @@ public class ColorPayload
     public static ColorPayload? From(byte[] data)
     {
         using var stream = new MemoryStream(data);
-        if (stream.ReadByte() != START_BYTE || stream.ReadByte() != 0x13)
+        if (stream.ReadByte() != StartByte || stream.ReadByte() != 0x13)
             return null;
 
         stream.ReadByte(); // skip the length byte;
@@ -37,7 +37,9 @@ public class ColorPayload
                 {
                     return v switch
                     {
+                        // ReSharper disable once LocalizableElement
                         -1 => throw new ArgumentException("Encountered premature end of input (unexpected EOF).", nameof(v)),
+                        // ReSharper disable once LocalizableElement
                         0 => throw new ArgumentException("Encountered premature end of input (unexpected null character).", nameof(v)),
                         _ => (uint)v << shift
                     };
