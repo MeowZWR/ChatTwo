@@ -6,14 +6,9 @@ namespace ChatTwo.Code;
 
 internal static class ChatTypeExt
 {
-    internal static IEnumerable<(string, ChatType[])> SortOrder => new[]
-    {
-        (Language.Options_Tabs_ChannelTypes_Special,
-        [
-            ChatType.Debug,
-            ChatType.Urgent,
-            ChatType.Notice
-        ]),
+    internal static IEnumerable<(string, ChatType[])> SortOrder =>
+    [
+        (Language.Options_Tabs_ChannelTypes_Special, [ChatType.Debug, ChatType.Urgent, ChatType.Notice]),
 
         (Language.Options_Tabs_ChannelTypes_Chat,
         [
@@ -48,8 +43,8 @@ internal static class ChatTypeExt
             ChatType.CustomEmote
         ]),
 
-        (Language.Options_Tabs_ChannelTypes_Battle, new[]
-        {
+        (Language.Options_Tabs_ChannelTypes_Battle,
+        [
             ChatType.Damage,
             ChatType.Miss,
             ChatType.Action,
@@ -58,11 +53,11 @@ internal static class ChatTypeExt
             ChatType.GainBuff,
             ChatType.LoseBuff,
             ChatType.GainDebuff,
-            ChatType.LoseDebuff,
-        }),
+            ChatType.LoseDebuff
+        ]),
 
-        (Language.Options_Tabs_ChannelTypes_Announcements, new[]
-        {
+        (Language.Options_Tabs_ChannelTypes_Announcements,
+        [
             ChatType.System,
             ChatType.BattleSystem,
             ChatType.GatheringSystem,
@@ -87,10 +82,11 @@ internal static class ChatTypeExt
             ChatType.Orchestrion,
             ChatType.MessageBook,
             ChatType.Alarm,
-        }),
+            ChatType.GlamourNotifications
+        ])
         // Note: ExtraChat linkshells are handled separately in the tab settings
         // UI.
-    };
+    ];
 
     internal static string Name(this ChatType type)
     {
@@ -131,6 +127,7 @@ internal static class ChatTypeExt
             ChatType.LoseBuff => Language.ChatType_LoseBuff,
             ChatType.LoseDebuff => Language.ChatType_LoseDebuff,
             ChatType.Alarm => Language.ChatType_Alarm,
+            ChatType.GlamourNotifications => Language.ChatType_Glamour,
             ChatType.Echo => Language.ChatType_Echo,
             ChatType.System => Language.ChatType_System,
             ChatType.BattleSystem => Language.ChatType_BattleSystem,
@@ -258,6 +255,7 @@ internal static class ChatTypeExt
             case ChatType.PeriodicRecruitmentNotification:
             case ChatType.Orchestrion:
             case ChatType.Alarm:
+            case ChatType.GlamourNotifications:
             case ChatType.RetainerSale:
             case ChatType.Sign:
             case ChatType.MessageBook:
@@ -425,5 +423,64 @@ internal static class ChatTypeExt
         ChatType.FreeCompanyLoginLogout => true,
         ChatType.PvpTeamLoginLogout => true,
         _ => false,
+    };
+
+    internal static ChatType Parent(this ChatType type) => type switch
+    {
+        ChatType.Say => ChatType.Say,
+        ChatType.GmSay => ChatType.Say,
+        ChatType.Shout => ChatType.Shout,
+        ChatType.GmShout => ChatType.Shout,
+        ChatType.TellOutgoing => ChatType.TellOutgoing,
+        ChatType.TellIncoming => ChatType.TellOutgoing,
+        ChatType.GmTell => ChatType.TellOutgoing,
+        ChatType.Party => ChatType.Party,
+        ChatType.CrossParty => ChatType.Party,
+        ChatType.GmParty => ChatType.Party,
+        ChatType.Linkshell1 => ChatType.Linkshell1,
+        ChatType.GmLinkshell1 => ChatType.Linkshell1,
+        ChatType.Linkshell2 => ChatType.Linkshell2,
+        ChatType.GmLinkshell2 => ChatType.Linkshell2,
+        ChatType.Linkshell3 => ChatType.Linkshell3,
+        ChatType.GmLinkshell3 => ChatType.Linkshell3,
+        ChatType.Linkshell4 => ChatType.Linkshell4,
+        ChatType.GmLinkshell4 => ChatType.Linkshell4,
+        ChatType.Linkshell5 => ChatType.Linkshell5,
+        ChatType.GmLinkshell5 => ChatType.Linkshell5,
+        ChatType.Linkshell6 => ChatType.Linkshell6,
+        ChatType.GmLinkshell6 => ChatType.Linkshell6,
+        ChatType.Linkshell7 => ChatType.Linkshell7,
+        ChatType.GmLinkshell7 => ChatType.Linkshell7,
+        ChatType.Linkshell8 => ChatType.Linkshell8,
+        ChatType.GmLinkshell8 => ChatType.Linkshell8,
+        ChatType.FreeCompany => ChatType.FreeCompany,
+        ChatType.GmFreeCompany => ChatType.FreeCompany,
+        ChatType.NoviceNetwork => ChatType.NoviceNetwork,
+        ChatType.GmNoviceNetwork => ChatType.NoviceNetwork,
+        ChatType.CustomEmote => ChatType.CustomEmote,
+        ChatType.StandardEmote => ChatType.StandardEmote,
+        ChatType.Yell => ChatType.Yell,
+        ChatType.GmYell => ChatType.Yell,
+        ChatType.GainBuff => ChatType.GainBuff,
+        ChatType.LoseBuff => ChatType.GainBuff,
+        ChatType.GainDebuff => ChatType.GainDebuff,
+        ChatType.LoseDebuff => ChatType.GainDebuff,
+        ChatType.System => ChatType.System,
+        ChatType.Alarm => ChatType.System,
+        ChatType.GlamourNotifications => ChatType.System,
+        ChatType.RetainerSale => ChatType.System,
+        ChatType.PeriodicRecruitmentNotification => ChatType.System,
+        ChatType.Sign => ChatType.System,
+        ChatType.Orchestrion => ChatType.System,
+        ChatType.MessageBook => ChatType.System,
+        ChatType.NpcDialogue => ChatType.NpcDialogue,
+        ChatType.NpcAnnouncement => ChatType.NpcDialogue,
+        ChatType.LootRoll => ChatType.LootRoll,
+        ChatType.RandomNumber => ChatType.LootRoll,
+        ChatType.FreeCompanyAnnouncement => ChatType.FreeCompanyAnnouncement,
+        ChatType.FreeCompanyLoginLogout => ChatType.FreeCompanyAnnouncement,
+        ChatType.PvpTeamAnnouncement => ChatType.PvpTeamAnnouncement,
+        ChatType.PvpTeamLoginLogout => ChatType.PvpTeamAnnouncement,
+        _ => type,
     };
 }

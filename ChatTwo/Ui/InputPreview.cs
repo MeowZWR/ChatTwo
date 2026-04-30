@@ -10,7 +10,7 @@ using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 
 namespace ChatTwo.Ui;
 
@@ -71,7 +71,7 @@ public partial class InputPreview : Window
             AutoTranslate.ReplaceWithPayload(ref bytes);
 
             var chunks = ChunkUtil.ToChunks(SeString.Parse(bytes), ChunkSource.Content, ChatType.Say).ToList();
-            PreviewMessage = Message.FakeMessage(chunks, new ChatCode((ushort)XivChatType.Say));
+            PreviewMessage = Message.FakeMessage(chunks, new ChatCode(XivChatType.Say, 0, 0));
             PreviewMessage.DecodeTextParam();
         }
         HasEvaluation = !Plugin.Config.OnlyPreviewIf || PreviewMessage.Content.Count > 1;

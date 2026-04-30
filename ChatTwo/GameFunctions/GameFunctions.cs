@@ -2,10 +2,11 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.Text.SeStringHandling;
-using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Hooking;
 using Dalamud.Memory;
+using Dalamud.Utility;
 using Dalamud.Utility.Signatures;
+using FFXIVClientStructs.FFXIV.Client.Enums;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
@@ -13,18 +14,16 @@ using FFXIVClientStructs.FFXIV.Client.UI.Info;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using Lumina.Excel;
 using Lumina.Excel.Sheets;
-
-using ValueType = FFXIVClientStructs.FFXIV.Component.GUI.ValueType;
+using ValueType = FFXIVClientStructs.FFXIV.Component.GUI.AtkValueType;
 
 namespace ChatTwo.GameFunctions;
 
 internal unsafe class GameFunctions : IDisposable
 {
     #region Hooks
+    [Signature("E8 ?? ?? ?? ?? 48 85 C0 0F 84 ?? ?? ?? ?? 48 8B D0 49 8D 4F", DetourName = nameof(ResolveTextCommandPlaceholderDetour))]
+    private Hook<ResolveTextCommandPlaceholderDelegate>? ResolveTextCommandPlaceholderHook = null!;
     private delegate nint ResolveTextCommandPlaceholderDelegate(nint a1, byte* placeholderText, byte a3, byte a4);
-
-    [Signature("E8 ?? ?? ?? ?? 49 8D 4F 18 4C 8B E0", DetourName = nameof(ResolveTextCommandPlaceholderDetour))]
-    private Hook<ResolveTextCommandPlaceholderDelegate>? ResolveTextCommandPlaceholderHook { get; init; }
     #endregion
 
     private Plugin Plugin { get; }
@@ -74,10 +73,9 @@ internal unsafe class GameFunctions : IDisposable
 
     private void ListCommand(string name, ushort world, string commandName)
     {
-        var row = Plugin.DataManager.GetExcelSheet<World>().GetRow(world);
+        var worldRow = Sheets.WorldSheet.GetRow(world);
 
-        var worldName = row.Name.ExtractText();
-        ReplacementName = $"{name}@{worldName}";
+        ReplacementName = $"{name}@{worldRow.Name.ToString()}";
         ChatBox.SendMessage($"/{commandName} add {Placeholder}");
     }
 
@@ -109,7 +107,7 @@ internal unsafe class GameFunctions : IDisposable
         return addon != null && addon->IsVisible;
     }
 
-    internal static void OpenItemTooltip(uint id, ItemPayload.ItemKind itemKind)
+    internal static void OpenItemTooltip(uint id, ItemKind itemKind)
     {
         var atkStage = AtkStage.Instance();
         var agent = AgentItemDetail.Instance();
@@ -119,7 +117,7 @@ internal unsafe class GameFunctions : IDisposable
         if (agent == null || addon == null)
             return;
 
-        agent->ItemKind = itemKind == ItemPayload.ItemKind.EventItem ? ItemDetailKind.ChatEventItem : ItemDetailKind.ChatItem;
+        agent->DetailKind = itemKind == ItemKind.EventItem ? DetailKind.KeyItem : DetailKind.Item;
         agent->TypeOrId = id;
         agent->Index = 0;
         agent->Flag1 &= 0xEF;
@@ -134,7 +132,7 @@ internal unsafe class GameFunctions : IDisposable
         agent->AddonId = addon->Id;
 
         // Skips early return
-        atkStage->TooltipManager.Flag1 |= 2;
+        atkStage->TooltipManager.TooltipType |= 2;
         addon->Show(false, 15);
     }
 
@@ -190,7 +188,7 @@ internal unsafe class GameFunctions : IDisposable
 
     internal static void OpenQuestLog(RowRef<Quest> quest)
     {
-        var splits = quest.Value.Id.ExtractText().Split("_");
+        var splits = quest.Value.Id.ToString().Split("_");
         if (splits.Length != 2)
         {
             Plugin.ChatGui.Print("QuestId is wrongly formatted");

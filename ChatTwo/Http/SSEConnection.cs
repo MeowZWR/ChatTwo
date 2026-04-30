@@ -1,4 +1,5 @@
-﻿using ChatTwo.Http.MessageProtocol;
+﻿using System.Collections.Concurrent;
+using ChatTwo.Http.MessageProtocol;
 using WatsonWebserver.Core;
 
 namespace ChatTwo.Http;
@@ -9,7 +10,7 @@ public class SSEConnection
     private readonly CancellationToken Token;
 
     public bool Done;
-    public readonly Queue<BaseEvent> OutboundQueue = new();
+    public readonly ConcurrentQueue<BaseEvent> OutboundQueue = new();
 
     public SSEConnection(CancellationToken token)
     {
@@ -34,10 +35,10 @@ public class SSEConnection
                 if (!OutboundQueue.TryDequeue(out var outgoingEvent))
                     continue;
 
-                if (!await ctx.Response.SendChunk(outgoingEvent.Build(), Token))
+                if (!await ctx.Response.SendChunk(outgoingEvent.Build(), false, Token))
                 {
-                    Plugin.Log.Information("SSE connection was unable to send new data");
-                    Plugin.Log.Information($"Client disconnected: {ctx.Guid}");
+                    Plugin.Log.Debug("SSE connection was unable to send new data");
+                    Plugin.Log.Debug($"Client disconnected: {ctx.Guid}");
                     return;
                 }
             }
@@ -53,7 +54,7 @@ public class SSEConnection
         finally
         {
             // "No Content" (204) didn't work for Firefox, so manually closing the connection on client side
-            await ctx.Response.SendFinalChunk(new CloseEvent().Build());
+            await ctx.Response.SendChunk(new CloseEvent().Build(), true, Token);
 
             // Manually confirm that we have finished our connection, even if the final response failed
             // This can happen if the client disconnects before the server does

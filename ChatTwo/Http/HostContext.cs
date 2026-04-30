@@ -5,23 +5,24 @@ namespace ChatTwo.Http;
 
 public class HostContext
 {
-    private readonly Plugin Plugin;
+    public readonly ServerCore Core;
 
     public bool IsActive;
     public bool IsStopping;
 
-    internal WebserverLite Host;
-    internal Processing Processing;
-    internal RouteController RouteController;
+    // Initialized at webserver start
+    public WebserverLite Host = null!;
+    public Processing Processing = null!;
+    public RouteController RouteController = null!;
 
-    internal readonly List<SSEConnection> EventConnections = [];
+    public readonly List<SSEConnection> EventConnections = [];
 
-    internal readonly CancellationTokenSource TokenSource = new();
-    internal readonly string StaticDir = Path.Combine(Plugin.Interface.AssemblyLocation.DirectoryName!, "Http");
+    public readonly CancellationTokenSource TokenSource = new();
+    public readonly string StaticDir = Path.Combine(Plugin.Interface.AssemblyLocation.DirectoryName!, "Frontend/");
 
-    public HostContext(Plugin plugin)
+    public HostContext(ServerCore core)
     {
-        Plugin = plugin;
+        Core = core;
     }
 
     public bool Start()
@@ -30,8 +31,8 @@ public class HostContext
         {
             Host = new WebserverLite(new WebserverSettings("*", Plugin.Config.WebinterfacePort), DefaultRoute);
 
-            Processing = new Processing(Plugin);
-            RouteController = new RouteController(Plugin, this);
+            Processing = new Processing(this);
+            RouteController = new RouteController(this);
 
             Host.Routes.PreAuthentication.Content.BaseDirectory = StaticDir;
             Host.Routes.AuthenticateRequest = CheckAuthenticationCookie;
@@ -44,7 +45,7 @@ public class HostContext
             Host.Settings.Debug.Responses = true;
             Host.Settings.Debug.AccessControl = true;
             #endif
-            Host.Events.Logger = logMessage => Plugin.Log.Information(logMessage);
+            Host.Events.Logger = logMessage => Plugin.Log.Debug(logMessage);
 
             IsActive = true;
             return true;
@@ -82,7 +83,7 @@ public class HostContext
             Host.Stop();
 
             // Save our session tokens
-            Plugin.SaveConfig();
+            Core.Plugin.SaveConfig();
 
             // We get a copy, so that the original can be cleaned up successfully
             foreach (var eventServer in EventConnections.ToArray())
@@ -120,14 +121,14 @@ public class HostContext
 
     private async Task CheckAuthenticationCookie(HttpContextBase ctx)
     {
-        if (Plugin.Config.SessionTokens.IsEmpty)
+        if (Plugin.Config.AuthStore.Count == 0)
         {
             await RouteController.Redirect(ctx, "/", ("message", "Invalid session token."));
             return;
         }
 
         var cookies = WebserverUtil.GetCookieData(ctx.Request.Headers.Get("Cookie") ?? "");
-        if (!cookies.TryGetValue("ChatTwo-token", out var token) || !Plugin.Config.SessionTokens.ContainsKey(token))
+        if (!cookies.TryGetValue("ChatTwo-token", out var token) || !Plugin.Config.AuthStore.Contains(token))
             await RouteController.Redirect(ctx, "/", ("message", "Invalid session token."));
 
         // Do nothing to let auth pass

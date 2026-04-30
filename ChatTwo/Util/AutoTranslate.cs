@@ -3,13 +3,12 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
 using Dalamud.Game;
-using Dalamud.Game.Text.SeStringHandling;
-using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Utility;
 using Lumina.Excel;
 using Lumina.Text.Payloads;
 using Lumina.Text.ReadOnly;
 using Pidgin;
+
 using static Pidgin.Parser;
 using static Pidgin.Parser<char>;
 
@@ -83,8 +82,11 @@ internal static class AutoTranslate
             {
                 if (lookup is not ("" or "@"))
                 {
+                    // SE added whitespace to the newest additions, but ParseOrThrow doesn't see them as valid
+                    lookup = lookup.Replace(" ", "");
+
                     var (sheetName, selector) = parser.ParseOrThrow(lookup);
-                    var sheet = Plugin.DataManager.Excel.GetSheet<WorkingRawRow>(name: sheetName);
+                    var sheet = Plugin.DataManager.Excel.GetSheet<RawRow>(name: sheetName);
 
                     var columns = new List<int>();
                     var rows = new List<Range>();
@@ -140,12 +142,10 @@ internal static class AutoTranslate
 
                             foreach (var col in columns)
                             {
-                                var rawName = rowParser.RawRow.ReadStringColumn(col);
-                                var name = rawName.ToDalamudString();
-                                var text = name.TextValue;
-                                if (text.Length > 0)
+                                var rawName = rowParser.ReadStringColumn(col);
+                                if (!rawName.IsEmpty)
                                 {
-                                    list.Add(new AutoTranslateEntry(row.Group, (uint)i, text, name));
+                                    list.Add(new AutoTranslateEntry(row.Group, (uint)i, rawName.ToString(), string.Empty));
 
                                     if (shouldAdd)
                                         ValidEntries.Add((row.Group, (uint)i));
@@ -156,8 +156,10 @@ internal static class AutoTranslate
                 }
                 else if (lookup is not "@")
                 {
-                    var text = row.Text.ToDalamudString();
-                    list.Add(new AutoTranslateEntry(row.Group, row.RowId, text.TextValue, text));
+                    if (row.Text.IsEmpty)
+                        continue;
+
+                    list.Add(new AutoTranslateEntry(row.Group, row.RowId, row.Text.ToString(), row.GroupTitle.ToString()));
 
                     if (shouldAdd)
                         ValidEntries.Add((row.Group, row.RowId));
@@ -180,19 +182,34 @@ internal static class AutoTranslate
         var otherMatches = new List<AutoTranslateEntry>();
         foreach (var entry in AllEntries())
         {
-            if (entry.String.Equals(prefix, StringComparison.OrdinalIgnoreCase))
+            if (entry.Text.Equals(prefix, StringComparison.OrdinalIgnoreCase))
+            {
                 wholeMatches.Add(entry);
-            else if (entry.String.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            }
+            else if (entry.Text.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
                 prefixMatches.Add(entry);
-            else if (entry.String.Contains(prefix, StringComparison.OrdinalIgnoreCase))
+            }
+            else if (entry.Text.Contains(prefix, StringComparison.OrdinalIgnoreCase))
+            {
                 otherMatches.Add(entry);
+            }
+            else if (entry.Title.Length > 0)
+            {
+                if (entry.Title.Equals(prefix, StringComparison.OrdinalIgnoreCase))
+                    wholeMatches.Add(entry);
+                else if (entry.Title.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                    prefixMatches.Add(entry);
+                else if (entry.Title.Contains(prefix, StringComparison.OrdinalIgnoreCase))
+                    otherMatches.Add(entry);
+            }
         }
 
         if (sort)
         {
-            return wholeMatches.OrderBy(entry => entry.String, StringComparer.OrdinalIgnoreCase)
-                .Concat(prefixMatches.OrderBy(entry => entry.String, StringComparer.OrdinalIgnoreCase))
-                .Concat(otherMatches.OrderBy(entry => entry.String, StringComparer.OrdinalIgnoreCase))
+            return wholeMatches.OrderBy(entry => entry.Text, StringComparer.OrdinalIgnoreCase)
+                .Concat(prefixMatches.OrderBy(entry => entry.Text, StringComparer.OrdinalIgnoreCase))
+                .Concat(otherMatches.OrderBy(entry => entry.Text, StringComparer.OrdinalIgnoreCase))
                 .ToList();
         }
 
@@ -227,9 +244,7 @@ internal static class AutoTranslate
                 var parts = tag[4..^1].Split(',', 2);
                 if (parts.Length == 2 && uint.TryParse(parts[0], out var group) && uint.TryParse(parts[1], out var key))
                 {
-                    var payload = ValidEntries.Contains((group, key))
-                        ? new AutoTranslatePayload(group, key).Encode()
-                        : [];
+                    var payload = ValidEntries.Contains((group, key)) ? CreateFixedTranslation(group, key) : [];
 
                     var oldBytes = bytes.ToArray();
                     var lengthDiff = payload.Length - (i - start);
@@ -248,66 +263,83 @@ internal static class AutoTranslate
                 start = i;
         }
     }
-}
 
-[Sheet]
-public readonly struct WorkingRawRow(RawRow row) : IExcelRow<WorkingRawRow>
-{
-    public uint RowId => row.RowId;
-    public RawRow RawRow => row;
+    public static bool StartsWithCommand(ref byte[] bytes)
+    {
+        var search = "<at:"u8;
+        if (bytes.Length <= search.Length)
+            return false;
 
-    static WorkingRawRow IExcelRow<WorkingRawRow>.Create(ExcelPage page, uint offset, uint row) =>
-        new(new RawRow(page, offset, row));
+        // populate the list of valid entries
+        if (ValidEntries.Count == 0)
+            AllEntries();
+
+        for (var i = 0; i < search.Length; i++)
+        {
+            if (bytes[i] != search[i])
+                return false;
+        }
+
+        for (var i = 0; i < bytes.Length; i++)
+        {
+            if (bytes[i] != '>')
+                continue;
+
+            var tag = Encoding.UTF8.GetString(bytes[..(i + 1)]);
+            var parts = tag[4..^1].Split(',', 2);
+            if (parts.Length == 2 && uint.TryParse(parts[0], out var group) && uint.TryParse(parts[1], out var key))
+            {
+                if (!ValidEntries.Contains((group, key)))
+                    return false;
+
+                var evaluated = Plugin.Evaluator.Evaluate(new ReadOnlySeString(CreateFixedTranslation(group, key))).ToString();
+                if (!evaluated.StartsWith('/'))
+                    return false;
+
+                bytes = Encoding.UTF8.GetBytes(evaluated);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static byte[] CreateFixedTranslation(uint group, uint key)
+    {
+        using var rssb = new RentedSeStringBuilder();
+        return rssb.Builder
+            .BeginMacro(MacroCode.Fixed)
+            .AppendUIntExpression(group - 1)
+            .AppendUIntExpression(key)
+            .EndMacro()
+            .ToArray();
+    }
 }
 
 internal interface ISelectorPart { }
 
-internal class SingleRow : ISelectorPart
+internal class SingleRow(uint row) : ISelectorPart
 {
-    public uint Row { get; }
-
-    public SingleRow(uint row)
-    {
-        Row = row;
-    }
+    public uint Row { get; } = row;
 }
 
-internal class IndexRange : ISelectorPart
+internal class IndexRange(uint start, uint end) : ISelectorPart
 {
-    public uint Start { get; }
-    public uint End { get; }
-
-    public IndexRange(uint start, uint end)
-    {
-        Start = start;
-        End = end;
-    }
+    public uint Start { get; } = start;
+    public uint End { get; } = end;
 }
 
 internal class NounMarker : ISelectorPart { }
 
-internal class ColumnSpecifier : ISelectorPart
+internal class ColumnSpecifier(uint column) : ISelectorPart
 {
-    public uint Column { get; }
-
-    public ColumnSpecifier(uint column)
-    {
-        Column = column;
-    }
+    public uint Column { get; } = column;
 }
 
-internal class AutoTranslateEntry
+internal class AutoTranslateEntry(uint group, uint row, string str, string title)
 {
-    internal uint Group { get; }
-    internal uint Row { get; }
-    internal string String { get; }
-    internal SeString SeString { get; }
-
-    public AutoTranslateEntry(uint group, uint row, string str, SeString seStr)
-    {
-        Group = group;
-        Row = row;
-        String = str;
-        SeString = seStr;
-    }
+    internal uint Group { get; } = group;
+    internal uint Row { get; } = row;
+    internal string Text { get; } = str;
+    internal string Title { get; } = title;
 }

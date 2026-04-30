@@ -7,78 +7,33 @@ using System.Text.RegularExpressions;
 using Dalamud.Game.Text;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
-using Lumina.Excel.Sheets;
 
 namespace ChatTwo;
 
-internal class SortCode
+public partial class Message
 {
-    internal ChatType Type { get; }
-    internal ChatSource Source { get; }
+    public Guid Id { get; } = Guid.NewGuid();
+    public ulong Receiver { get; }
+    public ulong ContentId { get; set; }
+    public ulong AccountId { get; set; } // 0 if not set
 
-    public SortCode(ChatType type, ChatSource source)
-    {
-        Type = type;
-        Source = source;
-    }
+    public DateTimeOffset Date { get; }
+    public ChatCode Code { get; }
+    public List<Chunk> Sender { get; }
+    public List<Chunk> Content { get; private set; }
 
-    internal SortCode(uint raw)
-    {
-        Type = (ChatType)(raw >> 16);
-        Source = (ChatSource)(raw & 0xFFFF);
-    }
+    public SeString SenderSource { get; }
+    public SeString ContentSource { get; }
 
-    internal uint Encode()
-    {
-        return ((uint) Type << 16) | (uint) Source;
-    }
-
-    private bool Equals(SortCode other)
-    {
-        return Type == other.Type && Source == other.Source;
-    }
-
-    public override bool Equals(object? obj)
-    {
-        if (ReferenceEquals(null, obj))
-            return false;
-
-        if (ReferenceEquals(this, obj))
-            return true;
-
-        return obj.GetType() == GetType() && Equals((SortCode) obj);
-    }
-
-    public override int GetHashCode()
-    {
-        unchecked { return ((int) Type * 397) ^ (int) Source; }
-    }
-}
-
-internal partial class Message
-{
-    internal Guid Id { get; } = Guid.NewGuid();
-    internal ulong Receiver { get; }
-    internal ulong ContentId { get; set; }
-    internal ulong AccountId { get; set; } // 0 if not set
-
-    internal DateTimeOffset Date { get; }
-    internal ChatCode Code { get; }
-    internal List<Chunk> Sender { get; }
-    internal List<Chunk> Content { get; private set; }
-
-    internal SeString SenderSource { get; }
-    internal SeString ContentSource { get; }
-
-    internal SortCode SortCode { get; }
-    internal Guid ExtraChatChannel { get; }
+    public int SortCodeV2 { get; }
+    public Guid ExtraChatChannel { get; }
 
     // Not stored in the database:
-    internal int Hash { get; }
-    internal Dictionary<Guid, float?> Height { get; } = new();
-    internal Dictionary<Guid, bool> IsVisible { get; } = new();
+    public int Hash { get; }
+    public Dictionary<Guid, float?> Height { get; } = new();
+    public Dictionary<Guid, bool> IsVisible { get; } = new();
 
-    internal Message(ulong receiver, ulong contentId, ulong accountId, ChatCode code, List<Chunk> sender, List<Chunk> content, SeString senderSource, SeString contentSource)
+    public Message(ulong receiver, ulong contentId, ulong accountId, ChatCode code, List<Chunk> sender, List<Chunk> content, SeString senderSource, SeString contentSource)
     {
         var extraChatChannel = ExtractExtraChatChannel(contentSource);
         Receiver = receiver;
@@ -90,7 +45,7 @@ internal partial class Message
         Content = CheckMessageContent(content, extraChatChannel);
         SenderSource = senderSource;
         ContentSource = contentSource;
-        SortCode = new SortCode(Code.Type, Code.Source);
+        SortCodeV2 = Code.ToSortCodeV2();
         ExtraChatChannel = extraChatChannel;
         Hash = GenerateHash();
 
@@ -98,7 +53,7 @@ internal partial class Message
             chunk.Message = this;
     }
 
-    internal Message(Guid id, ulong receiver, ulong contentId, DateTimeOffset date, ChatCode code, List<Chunk> sender, List<Chunk> content, SeString senderSource, SeString contentSource, SortCode sortCode, Guid extraChatChannel)
+    public Message(Guid id, ulong receiver, ulong contentId, DateTimeOffset date, ChatCode code, List<Chunk> sender, List<Chunk> content, SeString senderSource, SeString contentSource, Guid extraChatChannel)
     {
         Id = id;
         Receiver = receiver;
@@ -111,7 +66,7 @@ internal partial class Message
         Content = content;
         SenderSource = senderSource;
         ContentSource = contentSource;
-        SortCode = sortCode;
+        SortCodeV2 = code.ToSortCodeV2();
         ExtraChatChannel = extraChatChannel;
         Hash = GenerateHash();
 
@@ -119,25 +74,26 @@ internal partial class Message
             chunk.Message = this;
     }
 
-    internal static Message FakeMessage(List<Chunk> content, ChatCode code)
+    public static Message FakeMessage(List<Chunk> content, ChatCode code)
     {
         return new Message(0, 0, 0, code, [], content, new SeString(), new SeString());
     }
 
-    internal bool Matches(Dictionary<ChatType, ChatSource> channels, bool allExtraChatChannels, HashSet<Guid> extraChatChannels)
+    public bool Matches(Dictionary<ChatType, (ChatSource Source, ChatSource Target)> channels, bool allExtraChatChannels, HashSet<Guid> extraChatChannels)
     {
         if (ExtraChatChannel != Guid.Empty)
             return allExtraChatChannels || extraChatChannels.Contains(ExtraChatChannel);
 
+        var source = (ChatSource)(1 << (int)Code.Source);
+        var target = (ChatSource)(1 << (int)Code.Target);
         return Code.Type.IsGm()
                || channels.TryGetValue(Code.Type, out var sources)
-               && (Code.Source is 0 or (ChatSource) 1
-                   || sources.HasFlag(Code.Source));
+               && (Code.Source is 0 || sources.Source.HasFlag(source) || sources.Target.HasFlag(target));
     }
 
     private int GenerateHash()
     {
-        var hash = SortCode.GetHashCode()
+        var hash = SortCodeV2.GetHashCode()
                    ^ ExtraChatChannel.GetHashCode()
                    ^ string.Join("", Sender.Select(c => c.StringValue())).GetHashCode()
                    ^ string.Join("", Content.Select(c => c.StringValue())).GetHashCode();
@@ -158,8 +114,17 @@ internal partial class Message
         {
             // this does an encode and clone every time it's accessed, so cache
             var data = raw.Data;
-            if (data[1] == 0x27 && data[2] == 18 && data[3] == 0x20)
-                return new Guid(data[4..^1]);
+            try
+            {
+                if (data[1] == 0x27 && data[2] == 18 && data[3] == 0x20)
+                    return new Guid(data[4..^1]);
+            }
+            catch (ArgumentException ex)
+            {
+                Plugin.Log.Error(ex, "Failed to parse extra chat channel GUID");
+                Plugin.Log.Error($"Byte Array: ${string.Join(", ", data[4..^1])}");
+                return Guid.Empty;
+            }
         }
 
         return Guid.Empty;
@@ -225,7 +190,7 @@ internal partial class Message
                     AddChunkWithMessage(text.NewWithStyle(chunk.Source, chunk.Link, sentenceBuilder.Append(!wordUsed ? word : "").ToString()));
                     try
                     {
-                        AddChunkWithMessage(text.NewWithStyle(chunk.Source, UriPayload.ResolveURI(token.Value), token.Value));
+                        AddChunkWithMessage(text.NewWithStyle(chunk.Source, UriPayload.ResolveUri(token.Value), token.Value));
                     }
                     catch (UriFormatException)
                     {
@@ -310,15 +275,15 @@ internal partial class Message
 
                         var kind = item.ItemId switch
                         {
-                            < 500_000 => ItemPayload.ItemKind.Normal,
-                            < 1_000_000 => ItemPayload.ItemKind.Collectible,
-                            < 2_000_000 => ItemPayload.ItemKind.Hq,
-                            _ => ItemPayload.ItemKind.EventItem
+                            < 500_000 => ItemKind.Normal,
+                            < 1_000_000 => ItemKind.Collectible,
+                            < 2_000_000 => ItemKind.Hq,
+                            _ => ItemKind.EventItem
                         };
 
-                        var name = kind != ItemPayload.ItemKind.EventItem
-                            ? Plugin.DataManager.GetExcelSheet<Item>().GetRow(item.ItemId).Name.ToString()
-                            : Plugin.DataManager.GetExcelSheet<EventItem>().GetRow(item.ItemId).Name.ToString();
+                        var name = kind != ItemKind.EventItem
+                            ? Sheets.ItemSheet.GetRow(item.ItemId).Name.ToString()
+                            : Sheets.EventItemSheet.GetRow(item.ItemId).Name.ToString();
 
                         var link = new ItemPayload(item.ItemId, kind, $"{SeIconChar.LinkMarker.ToIconChar()}{name}");
                         AddChunkWithMessage(text.NewWithStyle(chunk.Source, link, link.DisplayName ?? "Unknown"));
@@ -332,7 +297,7 @@ internal partial class Message
                             continue;
                         }
 
-                        var nameValue = statusRow.Name.ToDalamudString().TextValue;
+                        var nameValue = statusRow.Name.ToString();
                         var content = statusRow.StatusCategory switch
                         {
                             1 => $"{SeIconChar.Buff.ToIconString()}{nameValue}",
@@ -346,13 +311,13 @@ internal partial class Message
                     else if (split == "<flag>")
                     {
                         var agentMap = AgentMap.Instance();
-                        if (!agentMap->IsFlagMarkerSet)
+                        if (agentMap->FlagMarkerCount == 0)
                         {
                             AddChunkWithMessage(text.NewWithStyle(chunk.Source, chunk.Link, split));
                             continue;
                         }
 
-                        var mapCoords = agentMap->FlagMapMarker;
+                        var mapCoords = agentMap->FlagMapMarkers[0];
                         var rawX = (int)(MathF.Round(mapCoords.XFloat, 3, MidpointRounding.AwayFromZero) * 1000);
                         var rawY = (int)(MathF.Round(mapCoords.YFloat, 3, MidpointRounding.AwayFromZero) * 1000);
 

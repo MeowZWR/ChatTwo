@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 using Dalamud.Interface.Textures;
 using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Utility;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -28,24 +28,28 @@ public static class EmoteCache
     private const string Top100Emotes = "{0}/emotes/shared/top?before={1}&limit=100";
     private const string EmotePath = "https://cdn.betterttv.net/emote/{0}/3x";
 
-    private struct Top100
+    [Serializable]
+    private struct Top100()
     {
         [JsonPropertyName("emote")]
-        public Emote Emote { get; set; }
+        public Emote Emote = default;
 
         [JsonPropertyName("id")]
-        public string Id { get; set; }
+        public string Id = string.Empty;
     }
 
-    public struct Emote
+    [Serializable]
+    public struct Emote()
     {
         [JsonPropertyName("id")]
-        public string Id { get; set; }
+        public string Id = string.Empty;
+
         [JsonPropertyName("code")]
-        public string Code { get; set; }
+        public string Code = string.Empty;
+
         [JsonPropertyName("imageType")]
-        public string ImageType { get; set; }
-    };
+        public string ImageType = string.Empty;
+    }
 
     public enum LoadingState
     {
@@ -154,7 +158,7 @@ public static class EmoteCache
 
         public virtual void Draw(Vector2 size)
         {
-            ImGui.Image(Texture!.ImGuiHandle, size);
+            ImGui.Image(Texture!.Handle, size);
         }
 
         internal async Task<byte[]> LoadAsync(Emote emote)
@@ -236,7 +240,7 @@ public static class EmoteCache
             if (FrameTimer <= 0.0f)
                 FrameTimer = frame.Delay;
 
-            ImGui.Image(frame.Texture.ImGuiHandle, size);
+            ImGui.Image(frame.Texture.Handle, size);
 
             if (GlobalFrameCount == Plugin.Interface.UiBuilder.FrameCount)
                 return;

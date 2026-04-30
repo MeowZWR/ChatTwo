@@ -5,7 +5,7 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 
 namespace ChatTwo.Ui.SettingsTabs;
 
@@ -33,7 +33,7 @@ internal sealed class About : ISettingsTab
 
     public void Draw(bool changed)
     {
-        using var wrap = ImGuiUtil.TextWrapPos();
+        using var wrap = ImRaii.TextWrapPos(0.0f);
 
         ImGui.TextUnformatted(string.Format(Language.Options_About_Opening, Plugin.PluginName));
 

@@ -1,19 +1,59 @@
 ﻿using ChatTwo.Http.MessageProtocol;
+using Dalamud.Plugin.Services;
 
 namespace ChatTwo.Http;
 
 public class ServerCore : IAsyncDisposable
 {
-    private readonly Plugin Plugin;
+    public readonly Plugin Plugin;
     private readonly HostContext HostContext;
 
     public ServerCore(Plugin plugin)
     {
         Plugin = plugin;
-        HostContext = new HostContext(plugin);
+        HostContext = new HostContext(this);
+
+        Plugin.Framework.Update += FrameworkUpdate;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        Plugin.Framework.Update -= FrameworkUpdate;
+        await HostContext.DisposeAsync();
+    }
+
+    private void FrameworkUpdate(IFramework _)
+    {
+        foreach (var (idx, tab) in Plugin.Config.Tabs.Index())
+        {
+            if (tab.Unread == tab.LastSendUnread)
+                continue;
+
+            tab.LastSendUnread = tab.Unread;
+            foreach (var eventServer in HostContext.EventConnections)
+                eventServer.OutboundQueue.Enqueue(new ChatTabUnreadStateEvent(new ChatTabUnreadState(idx, tab.Unread)));
+        }
     }
 
     #region SSE Helper
+    internal async Task PrepareNewClient(SSEConnection sse)
+    {
+        // This takes long, so keep it outside the next frame
+        var messages = await HostContext.Processing.GetAllMessages();
+
+        // Using the bulk message event to clear everything on the client side that may still exist
+        await Plugin.Framework.RunOnTick(() =>
+        {
+            sse.OutboundQueue.Enqueue(new BulkMessagesEvent(messages));
+
+            sse.OutboundQueue.Enqueue(new SwitchChannelEvent(HostContext.Processing.GetCurrentChannel()));
+            sse.OutboundQueue.Enqueue(new ChannelListEvent(HostContext.Processing.GetValidChannels()));
+
+            sse.OutboundQueue.Enqueue(new ChatTabSwitchedEvent(HostContext.Processing.GetCurrentTab()));
+            sse.OutboundQueue.Enqueue(new ChatTabListEvent(HostContext.Processing.GetAllTabs()));
+        });
+    }
+
     internal void SendNewMessage(Message message)
     {
         if (!HostContext.IsActive)
@@ -23,7 +63,7 @@ public class ServerCore : IAsyncDisposable
         {
             Plugin.Framework.RunOnTick(() =>
             {
-                var bundledResponse = new NewMessageEvent(new Messages([HostContext.Processing.ReadMessageContent(message)]));
+                var bundledResponse = new NewMessageEvent(HostContext.Processing.ReadMessageContent(message));
                 foreach (var eventServer in HostContext.EventConnections)
                     eventServer.OutboundQueue.Enqueue(bundledResponse);
             });
@@ -82,8 +122,7 @@ public class ServerCore : IAsyncDisposable
         {
             Plugin.Framework.RunOnTick(() =>
             {
-                var channels = Plugin.ChatLogWindow.GetAvailableChannels();
-                var bundledResponse = new ChannelListEvent(new ChannelList(channels.ToDictionary(pair => pair.Key, pair => (uint)pair.Value)));
+                var bundledResponse = new ChannelListEvent(HostContext.Processing.GetValidChannels());
                 foreach (var eventServer in HostContext.EventConnections)
                     eventServer.OutboundQueue.Enqueue(bundledResponse);
             });
@@ -104,7 +143,7 @@ public class ServerCore : IAsyncDisposable
             Plugin.Framework.RunOnTick(async () =>
             {
                 foreach (var eventServer in HostContext.EventConnections)
-                    await HostContext.Processing.PrepareNewClient(eventServer);
+                    await HostContext.Core.PrepareNewClient(eventServer);
             });
         }
         catch (Exception ex)
@@ -119,7 +158,7 @@ public class ServerCore : IAsyncDisposable
         if (!HostContext.IsActive)
             return;
 
-        Plugin.Config.SessionTokens.Clear();
+        Plugin.Config.AuthStore.Clear();
         Plugin.SaveConfig();
     }
 
@@ -147,10 +186,5 @@ public class ServerCore : IAsyncDisposable
     public async ValueTask<bool> Stop()
     {
         return await HostContext.Stop();
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        await HostContext.DisposeAsync();
     }
 }

@@ -10,14 +10,12 @@ internal sealed unsafe class Context
     internal static void InviteToNoviceNetwork(string name, ushort world)
     {
         // can specify content id if we have it, but there's no need
-        fixed (byte* namePtr = name.ToTerminatedBytes()) {
-            InfoProxyNoviceNetwork.Instance()->InviteToNoviceNetwork(0, world, namePtr);
-        }
+        InfoProxyNoviceNetwork.Instance()->InviteToNoviceNetwork(0, 0, world, name.ToTerminatedBytes());
     }
 
     internal static void TryOn(uint itemId, byte stainId)
     {
-        AgentTryon.TryOn(0xFF, itemId, stainId, 0, 0);
+        AgentTryon.TryOn(0xFF, itemId, stainId);
     }
 
     internal static void LinkItem(uint itemId)
@@ -42,6 +40,6 @@ internal sealed unsafe class Context
 
     internal static void SearchForItem(uint itemId)
     {
-        ItemFinderModule.Instance()->SearchForItem(itemId, true);
+        ItemFinderModule.Instance()->SearchForItem(itemId);
     }
 }

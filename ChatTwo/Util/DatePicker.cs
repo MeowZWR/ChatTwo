@@ -7,7 +7,7 @@ using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Utility;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 
 namespace ChatTwo.Util;
 
@@ -25,7 +25,7 @@ public static class DateWidget
     private static float LongestMonthWidth;
     private static readonly float[] MonthWidths = new float[12];
 
-    private static uint LastOpenComboID;
+    private static uint LastOpenComboId;
 
     public static bool Validate(DateTime minimal, ref DateTime currentMin, ref DateTime currentMax)
     {
@@ -91,7 +91,7 @@ public static class DateWidget
         var arrowLeftWidth = ImGui.CalcTextSize(arrowLeft).X;
         var arrowRightWidth = ImGui.CalcTextSize(arrowRight).X;
 
-        var labelSize = ImGui.CalcTextSize(label, 0, true);
+        var labelSize = ImGui.CalcTextSize(label, true, 0);
 
         var widthRequiredByCalendar = (2.0f * arrowLeftWidth) + (2.0f * arrowRightWidth) + LongestMonthWidth + ImGui.CalcTextSize("9999").X + (120.0f * ImGuiHelpers.GlobalScale);
         var popupHeight = ((labelSize.Y + (2 * style.ItemSpacing.Y)) * HeightInItems) + (style.FramePadding.Y * 3);
@@ -109,9 +109,9 @@ public static class DateWidget
             // reset date when user right-clicks the date chooser header when the dialog is open
             dateOut = DateTime.Now;
         }
-        else if (LastOpenComboID != id)
+        else if (LastOpenComboId != id)
         {
-            LastOpenComboID = id;
+            LastOpenComboId = id;
             if (dateOut.Year == 1)
                 dateOut = DateTime.Now;
         }

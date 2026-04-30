@@ -2,25 +2,24 @@
 using Dalamud.Interface.GameFonts;
 using Dalamud.Interface.ManagedFontAtlas;
 using Dalamud.Interface.Utility;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 
 namespace ChatTwo;
 
 public class FontManager
 {
-    internal IFontHandle Axis { get; private set; }
-    internal IFontHandle AxisItalic { get; private set; }
+    internal IFontHandle Axis = null!;
+    internal IFontHandle AxisItalic = null!;
 
-    internal IFontHandle RegularFont { get; private set; }
-    internal IFontHandle? ItalicFont { get; private set; }
+    internal IFontHandle RegularFont = null!;
+    internal IFontHandle? ItalicFont;
 
-    internal IFontHandle FontAwesome { get; private set; }
+    internal IFontHandle FontAwesome = null!;
 
     internal readonly byte[] GameSymFont;
 
-    private ushort[] Ranges;
-    private ushort[] JpRange;
-
+    private ushort[] Ranges = [];
+    private ushort[] JpRange = [];
 
     public static readonly HashSet<float> AxisFontSizeList =
     [
@@ -44,7 +43,7 @@ public class FontManager
                 .ReadAsByteArrayAsync()
                 .Result;
 
-            Dalamud.Utility.Util.WriteAllBytesSafe(filePath, GameSymFont);
+            Dalamud.Utility.FilesystemUtil.WriteAllBytesSafe(filePath, GameSymFont);
         }
     }
 
@@ -52,10 +51,10 @@ public class FontManager
     {
         ushort[] BuildRange(IReadOnlyList<ushort>? chars, params nint[] ranges)
         {
-            var builder = new ImFontGlyphRangesBuilderPtr(ImGuiNative.ImFontGlyphRangesBuilder_ImFontGlyphRangesBuilder());
+            var builder = new ImFontGlyphRangesBuilderPtr(ImGuiNative.ImFontGlyphRangesBuilder());
             // text
             foreach (var range in ranges)
-                builder.AddRanges(range);
+                builder.AddRanges((ushort*)range);
 
             // chars
             if (chars != null)
@@ -70,10 +69,15 @@ public class FontManager
                 }
             }
 
+            // Ingame supported ranges
+            var reader = new FdtReader(Plugin.DataManager.GetFile("common/font/axis_12.fdt")!.Data);
+            foreach (var c in reader.Glyphs)
+                builder.AddChar(c.Char);
+
             // various symbols
             // French
             // Romanian
-            builder.AddText("←→↑↓《》■※☀★★☆♥♡ヅツッシ☀☁☂℃℉°♀♂♠♣♦♣♧®©™€$£♯♭♪✓√◎◆◇♦■□〇●△▽▼▲‹›≤≥<«“”─＼～");
+            // builder.AddText("←→↑↓《》■※☀★★☆♥♡ヅツッシ☀☁☂℃℉°♀♂♠♣♦♣♧®©™€$£♯♭♪✓√◎◆◇♦■□〇●△▽▼▲‹›≤≥<«“”─＼～");
             builder.AddText("Œœ");
             builder.AddText("ĂăÂâÎîȘșȚț");
 
@@ -85,7 +89,7 @@ public class FontManager
             return builder.BuildRangesToArray();
         }
 
-        var ranges = new List<nint> { ImGui.GetIO().Fonts.GetGlyphRangesDefault() };
+        var ranges = new List<nint> { (nint)ImGui.GetIO().Fonts.GetGlyphRangesDefault() };
         foreach (var extraRange in Enum.GetValues<ExtraGlyphRanges>())
             if (Plugin.Config.ExtraGlyphRanges.HasFlag(extraRange))
                 ranges.Add(extraRange.Range());

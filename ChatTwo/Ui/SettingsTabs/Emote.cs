@@ -4,7 +4,7 @@ using ChatTwo.Util;
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 
 namespace ChatTwo.Ui.SettingsTabs;
 
@@ -38,7 +38,7 @@ internal sealed class Emote : ISettingsTab
 
     public void Draw(bool changed)
     {
-        using var wrap = ImGuiUtil.TextWrapPos();
+        using var wrap = ImRaii.TextWrapPos(0.0f);
 
         ImGuiUtil.OptionCheckbox(ref Mutable.ShowEmotes, Language.Options_ShowEmotes_Name, Language.Options_ShowEmotes_Desc);
         ImGui.Spacing();
@@ -62,7 +62,7 @@ internal sealed class Emote : ISettingsTab
             if (table)
             {
                 ImGui.TableSetupColumn(Language.Options_Emote_EmoteTable);
-                ImGui.TableSetupColumn("##Del", 0, 0.07f);
+                ImGui.TableSetupColumn("##Del", ImGuiTableColumnFlags.WidthStretch, 0.07f);
 
                 ImGui.TableHeadersRow();
 

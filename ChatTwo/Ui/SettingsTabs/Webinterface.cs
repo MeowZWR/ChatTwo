@@ -4,7 +4,7 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Interface.Utility.Raii;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 
 namespace ChatTwo.Ui.SettingsTabs;
 
@@ -138,7 +138,7 @@ internal sealed class Webinterface(Plugin plugin, Configuration mutable) : ISett
                 clicked |= ImGuiUtil.IconButton(FontAwesomeIcon.ExternalLinkAlt, "urlOpen");
 
                 if (clicked)
-                    WrapperUtil.TryOpenURI(uri);
+                    WrapperUtil.TryOpenUri(uri);
             }
             else
             {

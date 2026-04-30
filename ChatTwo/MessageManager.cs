@@ -1,16 +1,19 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Text;
 using ChatTwo.Code;
 using ChatTwo.Resources;
 using ChatTwo.Util;
+using Dalamud.Game.Chat;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Hooking;
 using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Plugin.Services;
-using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
-using Lumina.Excel.Sheets;
+using Lumina.Text.Expressions;
+using Lumina.Text.Payloads;
+using Lumina.Text.ReadOnly;
 
 namespace ChatTwo;
 
@@ -21,7 +24,7 @@ internal class MessageManager : IAsyncDisposable
     private Plugin Plugin { get; }
     internal MessageStore Store { get; }
 
-    private Dictionary<ChatType, NameFormatting> Formats { get; } = new();
+    private Dictionary<ChatType, NameFormatting> Formats { get; } = [];
     private ulong LastContentId { get; set; }
 
     // Messages go into the PendingSync queue first, which will be consumed one
@@ -31,8 +34,8 @@ internal class MessageManager : IAsyncDisposable
     // After that, the message is enqueued in the PendingAsync queue, which will
     // be consumed in a separate thread and perform more processing (emotes,
     // URLs) as well as inserting the message into the database.
-    private Queue<PendingMessage> PendingSync { get; } = new();
-    private ConcurrentQueue<PendingMessage> PendingAsync { get; } = new();
+    private Queue<PendingMessage> PendingSync { get; } = [];
+    private ConcurrentQueue<PendingMessage> PendingAsync { get; } = [];
     private readonly Thread PendingMessageThread;
     private readonly CancellationTokenSource PendingThreadCancellationToken = new();
 
@@ -42,7 +45,7 @@ internal class MessageManager : IAsyncDisposable
     {
         get
         {
-            var contentId = Plugin.ClientState.LocalContentId;
+            var contentId = Plugin.PlayerState.ContentId;
             return contentId == 0 ? LastContentId : contentId;
         }
     }
@@ -98,7 +101,7 @@ internal class MessageManager : IAsyncDisposable
 
     private void OnFrameworkUpdate(IFramework framework)
     {
-        var contentId = Plugin.ClientState.LocalContentId;
+        var contentId = Plugin.PlayerState.ContentId;
         if (contentId != 0)
             LastContentId = contentId;
 
@@ -188,19 +191,19 @@ internal class MessageManager : IAsyncDisposable
     }
 
     public (SeString? Sender, SeString? Message) LastMessage = (null, null);
-    private void ChatMessage(XivChatType type, int timestamp, SeString sender, SeString message)
+    private void ChatMessage(IChatMessage message)
     {
-        LastMessage = (sender, message);
+        LastMessage = (message.Sender, message.Message);
 
         var pendingMessage = new PendingMessage
         {
-            ReceiverId = CurrentContentId,
             ContentId = 0,
             AccountId = 0,
-            Type = type,
-            Timestamp = timestamp,
-            Sender = sender,
-            Content = message,
+            LogKind = message.LogKind,
+            SourceKind = message.SourceKind,
+            TargetKind = message.TargetKind,
+            Sender = message.Sender,
+            Content = message.Message,
         };
 
         // Update colour codes.
@@ -218,17 +221,24 @@ internal class MessageManager : IAsyncDisposable
     // called for each message.
     private unsafe void ContentIdResolver(RaptureLogModule* agent, ulong contentId, ulong accountId, int messageIndex, ushort worldId, ushort chatType)
     {
-        ContentIdResolverHook?.Original(agent, contentId, accountId, messageIndex, worldId, chatType);
-        if (PendingSync.Count == 0)
-            return;
+        try
+        {
+            ContentIdResolverHook?.Original(agent, contentId, accountId, messageIndex, worldId, chatType);
+            if (PendingSync.Count == 0)
+                return;
 
-        PendingSync.Last().ContentId = contentId;
-        PendingSync.Last().AccountId = accountId;
+            PendingSync.Last().ContentId = contentId;
+            PendingSync.Last().AccountId = accountId;
+        }
+        catch (Exception ex)
+        {
+            Plugin.Log.Error(ex, "Error in ContentIdResolver");
+        }
     }
 
     private void ProcessMessage(PendingMessage pendingMessage)
     {
-        var chatCode = new ChatCode((ushort)pendingMessage.Type);
+        var chatCode = new ChatCode(pendingMessage.LogKind, pendingMessage.SourceKind, pendingMessage.TargetKind);
 
         NameFormatting? formatting = null;
         if (pendingMessage.Sender.Payloads.Count > 0)
@@ -237,15 +247,9 @@ internal class MessageManager : IAsyncDisposable
         var senderChunks = new List<Chunk>();
         if (formatting is { IsPresent: true })
         {
-            senderChunks.Add(new TextChunk(ChunkSource.None, null, formatting.Before)
-            {
-                FallbackColour = chatCode.Type,
-            });
+            senderChunks.Add(new TextChunk(ChunkSource.None, null, formatting.Before) { FallbackColour = chatCode.Type });
             senderChunks.AddRange(ChunkUtil.ToChunks(pendingMessage.Sender, ChunkSource.Sender, chatCode.Type));
-            senderChunks.Add(new TextChunk(ChunkSource.None, null, formatting.After)
-            {
-                FallbackColour = chatCode.Type,
-            });
+            senderChunks.Add(new TextChunk(ChunkSource.None, null, formatting.After) { FallbackColour = chatCode.Type });
         }
 
         var contentChunks = ChunkUtil.ToChunks(pendingMessage.Content, ChunkSource.Content, chatCode.Type).ToList();
@@ -291,36 +295,38 @@ internal class MessageManager : IAsyncDisposable
         }
     }
 
-    private NameFormatting? FormatFor(ChatType type)
+    private NameFormatting FormatFor(ChatType type)
     {
         if (Formats.TryGetValue(type, out var cached))
             return cached;
 
-        var logKind = Plugin.DataManager.GetExcelSheet<LogKind>().GetRow((ushort)type);
-        var format = logKind.Format.ToDalamudString();
-
-        static bool IsStringParam(Payload payload, byte num)
+        var formats = Sheets.LogKindSheet.GetRow((uint)type).Format.ToList();
+        static bool IsStringParam(ReadOnlySePayload payload, byte num)
         {
-            var data = payload.Encode();
-            return data.Length >= 5 && data[1] == 0x29 && data[4] == num + 1;
+            if (payload.MacroCode != MacroCode.String)
+                return false;
+
+            return payload.TryGetExpression(out var expr1)
+                && expr1.TryGetParameterExpression(out var expressionType, out var operand)
+                && expressionType == (byte)ExpressionType.LocalString
+                && operand.TryGetInt(out var lstrIndex)
+                && lstrIndex == num;
         }
 
-        var firstStringParam = format.Payloads.FindIndex(payload => IsStringParam(payload, 1));
-        var secondStringParam = format.Payloads.FindIndex(payload => IsStringParam(payload, 2));
+        var firstStringParam = formats.FindIndex(payload => IsStringParam(payload, 1));
+        var secondStringParam = formats.FindIndex(payload => IsStringParam(payload, 2));
 
         if (firstStringParam == -1 || secondStringParam == -1)
             return NameFormatting.Empty();
 
-        var before = format.Payloads
+        var before = formats
             .GetRange(0, firstStringParam)
-            .Where(payload => payload is ITextProvider)
-            .Cast<ITextProvider>()
-            .Select(text => text.Text);
-        var after = format.Payloads
+            .Where(payload => payload.Type == ReadOnlySePayloadType.Text)
+            .Select(text => Encoding.UTF8.GetString(text.Body.Span));
+        var after = formats
             .GetRange(firstStringParam + 1, secondStringParam - firstStringParam)
-            .Where(payload => payload is ITextProvider)
-            .Cast<ITextProvider>()
-            .Select(text => text.Text);
+            .Where(payload => payload.Type == ReadOnlySePayloadType.Text)
+            .Select(text => Encoding.UTF8.GetString(text.Body.Span)); // Can't use `ToString()` as it defaults to macro
 
         var nameFormatting = NameFormatting.Of(string.Join("", before), string.Join("", after));
         Formats[type] = nameFormatting;
@@ -330,12 +336,12 @@ internal class MessageManager : IAsyncDisposable
 
     private class PendingMessage
     {
-        internal ulong ReceiverId { get; set; }
-        internal ulong ContentId { get; set; } // 0 if unknown
-        internal ulong AccountId { get; set; } // 0 if unknown
-        internal XivChatType Type { get; set; }
-        internal int Timestamp { get; set; }
-        internal SeString Sender { get; set; }
-        internal SeString Content { get; set; }
+        public ulong ContentId; // 0 if unknown
+        public ulong AccountId; // 0 if unknown
+        public XivChatType LogKind;
+        public XivChatRelationKind SourceKind;
+        public XivChatRelationKind TargetKind;
+        public required SeString Sender;
+        public required SeString Content;
     }
 }

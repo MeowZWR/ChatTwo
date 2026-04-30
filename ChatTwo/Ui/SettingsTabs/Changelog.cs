@@ -1,7 +1,7 @@
 using ChatTwo.Resources;
 using ChatTwo.Util;
 using Dalamud.Interface.Utility.Raii;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 
 namespace ChatTwo.Ui.SettingsTabs;
 
@@ -18,7 +18,7 @@ internal sealed class Changelog : ISettingsTab
 
     public void Draw(bool changed)
     {
-        using var wrap = ImGuiUtil.TextWrapPos();
+        using var wrap = ImRaii.TextWrapPos(0.0f);
 
         ImGui.TextUnformatted(Language.Options_Warning_NotImplemented);
         ImGuiUtil.OptionCheckbox(ref Mutable.PrintChangelog, Language.Options_PrintChangelog_Name, Language.Options_PrintChangelog_Description);
