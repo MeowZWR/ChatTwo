@@ -115,13 +115,18 @@ public sealed class Plugin : IDalamudPlugin
             }
 #pragma warning restore CS0618 // Type or member is obsolete
 
+            if (Config.Tabs.Count == 0)
+                Config.Tabs.Add(TabsUtil.VanillaGeneral);
+
             try
             {
                 var mareCfg = MareConfiguration.Load() ?? new MareConfiguration();
                 MareCfg = mareCfg;
+                MareCfg.EnsureDefaultChannels(Config.Tabs.Count);
                 Config.ApplyMareConfig(mareCfg);
 
                 var (sanitized, mareNew) = Config.SplitMareConfig();
+                mareNew.DefaultChannelsInitialized = MareCfg.DefaultChannelsInitialized;
                 mareNew.ReduceE044By2Pt = MareCfg.ReduceE044By2Pt;
                 mareNew.EmoteTooltipScale = MareCfg.EmoteTooltipScale;
 
@@ -136,9 +141,6 @@ public sealed class Plugin : IDalamudPlugin
             {
                 Log.Debug(ex, "Failed to migrate Mare configuration");
             }
-
-            if (Config.Tabs.Count == 0)
-                Config.Tabs.Add(TabsUtil.VanillaGeneral);
 
             LanguageChanged(Interface.UiLanguage);
             ImGuiUtil.Initialize(this);
@@ -278,6 +280,7 @@ public sealed class Plugin : IDalamudPlugin
     {
         // 保存时拆分 Mare 配置；仅写盘，不替换内存中的 Config，避免重建 Tabs 导致消息列表被清空
         var (sanitized, mare) = Config.SplitMareConfig();
+        mare.DefaultChannelsInitialized = MareCfg.DefaultChannelsInitialized;
         mare.ReduceE044By2Pt = MareCfg.ReduceE044By2Pt;
         mare.EmoteTooltipScale = MareCfg.EmoteTooltipScale;
         Interface.SavePluginConfig(sanitized);
