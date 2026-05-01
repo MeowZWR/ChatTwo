@@ -158,6 +158,8 @@ public sealed class Plugin : IDalamudPlugin
             MareChat = new MareChat(this);
             FontManager = new FontManager();
 
+            MessageManager = new MessageManager(this); // Does it require UI?
+
             ChatLogWindow = new ChatLogWindow(this);
             SettingsWindow = new SettingsWindow(this);
             DbViewer = new DbViewer(this);
@@ -178,8 +180,6 @@ public sealed class Plugin : IDalamudPlugin
 
             Interface.UiBuilder.DisableCutsceneUiHide = true;
             Interface.UiBuilder.DisableGposeUiHide = true;
-
-            MessageManager = new MessageManager(this); // requires Ui
 
             // let all the other components register, then initialize commands
             Commands.Initialise();

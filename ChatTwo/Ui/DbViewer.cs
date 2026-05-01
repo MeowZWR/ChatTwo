@@ -13,6 +13,7 @@ using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
+using Dalamud.Interface.Components;
 using Dalamud.Interface.ImGuiNotification;
 using Lumina.Data.Files;
 using Lumina.Text.ReadOnly;
@@ -294,6 +295,30 @@ public class DbViewer : Window
 
         foreach (var (header, types) in ChatTypeExt.SortOrder)
         {
+            using var pushedId = ImRaii.PushId(header);
+
+            if (ImGuiComponents.IconButton(FontAwesomeIcon.Check))
+            {
+                foreach (var type in types)
+                    SelectedChannels.TryAdd(type, (ChatSourceExt.All, ChatSourceExt.All));
+            }
+
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip("Select all");
+
+            ImGui.SameLine();
+
+            if (ImGuiComponents.IconButton(FontAwesomeIcon.Times))
+            {
+                foreach (var type in types)
+                    SelectedChannels.Remove(type);
+            }
+
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip("Unselect all");
+
+            ImGui.SameLine();
+
             using var headerNode = ImRaii.TreeNode(header);
             if (!headerNode.Success)
                 continue;
@@ -541,8 +566,8 @@ public class DbViewer : Window
             {
                 if (chunk.Link is PlayerPayload playerPayload)
                     userContent = Plugin.ChatLogWindow.HidePlayerInString(userContent, playerPayload.PlayerName, playerPayload.World.RowId);
-                else if (Plugin.ObjectTable.LocalPlayer is { } player)
-                    userContent = Plugin.ChatLogWindow.HidePlayerInString(userContent, player.Name.TextValue, player.HomeWorld.RowId);
+                else if (Plugin.PlayerState.IsLoaded)
+                    userContent = Plugin.ChatLogWindow.HidePlayerInString(userContent, Plugin.PlayerState.CharacterName, Plugin.PlayerState.HomeWorld.RowId);
             }
 
             var isNotUrl = text.Link is not UriPayload;
