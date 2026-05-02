@@ -1149,7 +1149,7 @@
         <value>禁用此頻道的輸入</value>
     </data>
   <data name="Options_Tabs_SenderMessages" xml:space="preserve">
-        <value>Show all messages send by target</value>
+        <value>Show all messages sent by target</value>
     </data>
   <data name="ChatLog_DisabledInput" xml:space="preserve">
         <value>詞選項卡已禁用輸入</value>
@@ -1426,5 +1426,45 @@
     </data>
   <data name="ImGuiUtil_ChannelSelector_Target" xml:space="preserve">
         <value>Target</value>
+    </data>
+  <data name="ChannelSelector_Unselect" xml:space="preserve">
+        <value>Unselect all</value>
+    </data>
+  <data name="ChannelSelector_Select" xml:space="preserve">
+        <value>Select all</value>
+    </data>
+  <data name="Database_Migration_Error_Title" xml:space="preserve">
+        <value>Chat2 Database Migration Error</value>
+    </data>
+  <data name="Database_Migration_Error_Desc" xml:space="preserve">
+        <value>Database migration has failed, a new database will be created.
+Your old database can still be recovered, please contact the plugin author for help.</value>
+    </data>
+  <data name="DbViewer_Date_Reset_Tooltip" xml:space="preserve">
+        <value>Reset date selection.</value>
+    </data>
+  <data name="Folder_Export_Location_Tooltip" xml:space="preserve">
+        <value>Pick a folder location for export.</value>
+    </data>
+  <data name="Folder_Selection_Header" xml:space="preserve">
+        <value>Pick an export location</value>
+    </data>
+  <data name="Export_Txt_Tooltip" xml:space="preserve">
+        <value>Export the message history to a text file.</value>
+    </data>
+  <data name="Export_Json_Tooltip" xml:space="preserve">
+        <value>Export the message history to a json file.</value>
+    </data>
+  <data name="Page_ArrowLeft_Tooltip" xml:space="preserve">
+        <value>Previous page</value>
+    </data>
+  <data name="Page_ArrowRight_Tooltip" xml:space="preserve">
+        <value>Next page</value>
+    </data>
+  <data name="DatePicker_Tooltip" xml:space="preserve">
+        <value>Open date picker</value>
+    </data>
+  <data name="ChatExport_Initial" xml:space="preserve">
+        <value>Loading logs ...</value>
     </data>
 </root>

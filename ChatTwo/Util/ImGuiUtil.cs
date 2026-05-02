@@ -419,7 +419,7 @@ internal static class ImGuiUtil
         }
     }
 
-    public static void DrawArrows(ref int selected, int min, int max, float spacing, int id = 0)
+    public static void DrawArrows(ref int selected, int min, int max, float spacing, int id = 0, string? tooltipLeft = null, string? tooltipRight = null)
     {
         // Prevents changing values from triggering EndDisable
         var isMin = selected == min;
@@ -432,12 +432,19 @@ internal static class ImGuiUtil
                 selected--;
         }
 
+        if (tooltipLeft != null && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+            ImGui.SetTooltip(tooltipLeft);
+
         ImGui.SameLine(0, spacing);
+
         using (ImRaii.Disabled(isMax))
         {
             if (IconButton(FontAwesomeIcon.ArrowRight, id+1.ToString()))
                 selected++;
         }
+
+        if (tooltipRight != null && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+            ImGui.SetTooltip(tooltipRight);
     }
 
     public static void WrappedTextWithColor(Vector4 color, string text)
@@ -572,6 +579,8 @@ internal static class ImGuiUtil
 
     public static void ChannelSelector(string headerText, Dictionary<ChatType, (ChatSource Source, ChatSource Target)> chatCodes)
     {
+        var spacing = 3.0f * ImGuiHelpers.GlobalScale;
+
         using var channelNode = ImRaii.TreeNode(headerText);
         if (!channelNode.Success)
             return;
@@ -587,9 +596,9 @@ internal static class ImGuiUtil
             }
 
             if (ImGui.IsItemHovered())
-                ImGui.SetTooltip("Select all");
+                ImGui.SetTooltip(Language.ChannelSelector_Select);
 
-            ImGui.SameLine();
+            ImGui.SameLine(0, spacing);
 
             if (ImGuiComponents.IconButton(FontAwesomeIcon.Times))
             {
@@ -598,9 +607,9 @@ internal static class ImGuiUtil
             }
 
             if (ImGui.IsItemHovered())
-                ImGui.SetTooltip("Unselect all");
+                ImGui.SetTooltip(Language.ChannelSelector_Unselect);
 
-            ImGui.SameLine();
+            ImGui.SameLine(0, spacing);
 
             using var headerNode = ImRaii.TreeNode(header);
             if (!headerNode.Success)

@@ -276,7 +276,7 @@ public sealed class Plugin : IDalamudPlugin
         FileDialogManager.Draw();
     }
 
-    internal void SaveConfig()
+    public void SaveConfig()
     {
         // 保存时拆分 Mare 配置；仅写盘，不替换内存中的 Config，避免重建 Tabs 导致消息列表被清空
         var (sanitized, mare) = Config.SplitMareConfig();
@@ -287,7 +287,7 @@ public sealed class Plugin : IDalamudPlugin
         mare.Save();
     }
 
-    internal void LanguageChanged(string langCode)
+    public void LanguageChanged(string langCode)
     {
         var info = Config.LanguageOverride is LanguageOverride.None
             ? new CultureInfo(langCode)

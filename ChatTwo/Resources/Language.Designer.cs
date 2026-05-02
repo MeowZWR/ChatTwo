@@ -78,6 +78,24 @@ namespace ChatTwo.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Select all.
+        /// </summary>
+        internal static string ChannelSelector_Select {
+            get {
+                return ResourceManager.GetString("ChannelSelector_Select", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unselect all.
+        /// </summary>
+        internal static string ChannelSelector_Unselect {
+            get {
+                return ResourceManager.GetString("ChannelSelector_Unselect", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to An error occured while sending this tell message.
         /// </summary>
         internal static string Chat_SendTell_Error {
@@ -110,6 +128,15 @@ namespace ChatTwo.Resources {
         internal static string ChatBox_Error_Too_Long {
             get {
                 return ResourceManager.GetString("ChatBox_Error_Too_Long", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Loading logs ....
+        /// </summary>
+        internal static string ChatExport_Initial {
+            get {
+                return ResourceManager.GetString("ChatExport_Initial", resourceCulture);
             }
         }
         
@@ -1437,6 +1464,34 @@ namespace ChatTwo.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Database migration has failed, a new database will be created.
+        ///Your old database can still be recovered, please contact the plugin author for help..
+        /// </summary>
+        internal static string Database_Migration_Error_Desc {
+            get {
+                return ResourceManager.GetString("Database_Migration_Error_Desc", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Chat2 Database Migration Error.
+        /// </summary>
+        internal static string Database_Migration_Error_Title {
+            get {
+                return ResourceManager.GetString("Database_Migration_Error_Title", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Open date picker.
+        /// </summary>
+        internal static string DatePicker_Tooltip {
+            get {
+                return ResourceManager.GetString("DatePicker_Tooltip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Fri.
         /// </summary>
         internal static string DateWidget_Day_Fri {
@@ -1626,6 +1681,15 @@ namespace ChatTwo.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Reset date selection..
+        /// </summary>
+        internal static string DbViewer_Date_Reset_Tooltip {
+            get {
+                return ResourceManager.GetString("DbViewer_Date_Reset_Tooltip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to FromTo:.
         /// </summary>
         internal static string DbViewer_DatePicker_FromTo {
@@ -1716,6 +1780,24 @@ namespace ChatTwo.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Export the message history to a json file..
+        /// </summary>
+        internal static string Export_Json_Tooltip {
+            get {
+                return ResourceManager.GetString("Export_Json_Tooltip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Export the message history to a text file..
+        /// </summary>
+        internal static string Export_Txt_Tooltip {
+            get {
+                return ResourceManager.GetString("Export_Txt_Tooltip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Chinese (full).
         /// </summary>
         internal static string ExtraGlyphRanges_ChineseFull_Name {
@@ -1775,6 +1857,24 @@ namespace ChatTwo.Resources {
         internal static string ExtraGlyphRanges_Vietnamese_Name {
             get {
                 return ResourceManager.GetString("ExtraGlyphRanges_Vietnamese_Name", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Pick a folder location for export..
+        /// </summary>
+        internal static string Folder_Export_Location_Tooltip {
+            get {
+                return ResourceManager.GetString("Folder_Export_Location_Tooltip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Pick an export location.
+        /// </summary>
+        internal static string Folder_Selection_Header {
+            get {
+                return ResourceManager.GetString("Folder_Selection_Header", resourceCulture);
             }
         }
         
@@ -3692,6 +3792,24 @@ namespace ChatTwo.Resources {
         internal static string Options_WindowOpacity_Name {
             get {
                 return ResourceManager.GetString("Options_WindowOpacity_Name", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Previous page.
+        /// </summary>
+        internal static string Page_ArrowLeft_Tooltip {
+            get {
+                return ResourceManager.GetString("Page_ArrowLeft_Tooltip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Next page.
+        /// </summary>
+        internal static string Page_ArrowRight_Tooltip {
+            get {
+                return ResourceManager.GetString("Page_ArrowRight_Tooltip", resourceCulture);
             }
         }
         

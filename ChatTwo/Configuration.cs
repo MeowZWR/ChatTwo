@@ -31,6 +31,16 @@ public class ConfigKeyBind
 }
 
 [Serializable]
+public enum MigrationStatus
+{
+    NotStarted,
+    Started,
+    Copied,
+    Failed,
+    Finished,
+}
+
+[Serializable]
 public class Configuration : IPluginConfiguration
 {
     private const int LatestVersion = 6;
@@ -125,6 +135,9 @@ public class Configuration : IPluginConfiguration
     public int WebinterfacePort = 9000;
     public HashSet<string> AuthStore = [];
     public int WebinterfaceMaxLinesToSend = 1000; // 1-10000
+
+    // Migration safety
+    public MigrationStatus MigrationStatus = MigrationStatus.NotStarted;
 
     internal (Configuration sanitized, MareConfiguration mare) SplitMareConfig()
     {
@@ -269,6 +282,7 @@ public class Configuration : IPluginConfiguration
         WebinterfacePassword = other.WebinterfacePassword;
         WebinterfacePort = other.WebinterfacePort;
         WebinterfaceMaxLinesToSend = other.WebinterfaceMaxLinesToSend;
+        MigrationStatus = other.MigrationStatus;
     }
 }
 
