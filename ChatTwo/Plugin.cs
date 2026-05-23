@@ -129,7 +129,6 @@ public sealed class Plugin : IDalamudPlugin
             ServerCore = new ServerCore(this);
 
             Commands = new Commands();
-            Functions = new GameFunctions.GameFunctions(this);
             Ipc = new IpcManager();
             TypingIpc = new TypingIpc(this);
             ExtraChat = new ExtraChat();
@@ -138,6 +137,7 @@ public sealed class Plugin : IDalamudPlugin
             MessageManager = new MessageManager(this); // Does it require UI?
 
             ChatLog = new ChatLog(this);
+            Functions = new GameFunctions.GameFunctions(this);
             SettingsWindow = new SettingsWindow(this);
             DbViewer = new DbViewer(this);
             InputPreview = new InputPreview(ChatLog.InputHandler);
