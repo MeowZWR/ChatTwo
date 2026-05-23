@@ -94,7 +94,7 @@ public class ChunkHandler
                     ImGui.Dummy(emoteSize);
 
                 if (ImGui.IsItemHovered())
-                    ImGuiUtil.Tooltip(emotePayload.Code);
+                    ImGuiUtil.EmoteTooltip(emotePayload.Code);
 
                 return;
             }
