@@ -6,14 +6,14 @@ using Dalamud.Bindings.ImGui;
 
 namespace ChatTwo.Ui.SettingsTabs;
 
-internal sealed class ChatLog : ISettingsTab
+public sealed class ChatLogConfig : ISettingsTab
 {
     private readonly Plugin Plugin;
     private Configuration Mutable { get; }
 
     public string Name => Language.Options_ChatLog_Tab + "###tabs-chatlog";
 
-    internal ChatLog(Plugin plugin, Configuration mutable)
+    public ChatLogConfig(Plugin plugin, Configuration mutable)
     {
         Plugin = plugin;
         Mutable = mutable;
@@ -87,9 +87,9 @@ internal sealed class ChatLog : ISettingsTab
 
             ImGui.TextUnformatted(Language.Options_AdjustPosition_Name);
             ImGui.SetNextItemWidth(-1);
-            var pos = Plugin.ChatLogWindow.LastWindowPos;
+            var pos = Plugin.ChatLog.LastWindowPos;
             if (ImGui.DragFloat2($"##{Language.Options_AdjustPosition_Name}", ref pos, 1, 0, float.MaxValue, "%.0fpx"))
-                Plugin.ChatLogWindow.Position = pos;
+                Plugin.ChatLog.Position = pos;
             ImGuiUtil.WarningText(Language.Options_AdjustPosition_Warning);
             ImGui.Spacing();
         }

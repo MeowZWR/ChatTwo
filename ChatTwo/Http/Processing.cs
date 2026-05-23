@@ -15,19 +15,19 @@ public class Processing
         HostContext = hostContext;
     }
 
-    internal (MessageTemplate[] Name, bool Locked) ReadChannelName(Chunk[] channelName)
+    public (MessageTemplate[] Name, bool Locked) ReadChannelName(Chunk[] channelName)
     {
         var locked = HostContext.Core.Plugin.CurrentTab is not { Channel: null };
         return (channelName.Select(ProcessChunk).ToArray(), locked);
     }
 
-    internal async Task<MessageResponse[]> ReadMessageList()
+    public async Task<MessageResponse[]> ReadMessageList()
     {
         var tabMessages = await HostContext.Core.Plugin.CurrentTab.Messages.GetCopy();
         return tabMessages.TakeLast(Plugin.Config.WebinterfaceMaxLinesToSend).Select(ReadMessageContent).ToArray();
     }
 
-    internal MessageResponse ReadMessageContent(Message message)
+    public MessageResponse ReadMessageContent(Message message)
     {
         var response = new MessageResponse
         {
@@ -61,21 +61,21 @@ public class Processing
             }
 
             var color = text.Foreground;
-            if (color == null && text.FallbackColour != null)
+            if (color == null && text.FallbackColor != null)
             {
-                var type = text.FallbackColour.Value;
+                var type = text.FallbackColor.Value;
                 color = Plugin.Config.ChatColours.TryGetValue(type, out var col) ? col : type.DefaultColor();
             }
 
             color ??= 0;
 
             var userContent = text.Content;
-            if (HostContext.Core.Plugin.ChatLogWindow.ScreenshotMode)
+            if (PlayerUtil.ScreenshotMode)
             {
                 if (chunk.Link is PlayerPayload playerPayload)
-                    userContent = HostContext.Core.Plugin.ChatLogWindow.HidePlayerInString(userContent, playerPayload.PlayerName, playerPayload.World.RowId);
+                    userContent = PlayerUtil.HidePlayerInString(userContent, playerPayload.PlayerName, playerPayload.World.RowId);
                 else if (Plugin.PlayerState.IsLoaded)
-                    userContent = HostContext.Core.Plugin.ChatLogWindow.HidePlayerInString(userContent, Plugin.PlayerState.CharacterName, Plugin.PlayerState.HomeWorld.RowId);
+                    userContent = PlayerUtil.HidePlayerInString(userContent, Plugin.PlayerState.CharacterName, Plugin.PlayerState.HomeWorld.RowId);
             }
 
             var isNotUrl = text.Link is not UriPayload;
@@ -93,13 +93,13 @@ public class Processing
 
     public SwitchChannel GetCurrentChannel()
     {
-        var channel = ReadChannelName(HostContext.Core.Plugin.ChatLogWindow.PreviousChannel);
+        var channel = ReadChannelName(HostContext.Core.Plugin.ChatLog.PreviousChannel);
         return new SwitchChannel(channel);
     }
 
     public ChannelList GetValidChannels()
     {
-        var channels = HostContext.Core.Plugin.ChatLogWindow.GetValidChannels();
+        var channels = HostContext.Core.Plugin.ChatLog.GetValidChannels();
         return new ChannelList(channels.ToDictionary(pair => pair.Key, pair => (uint)pair.Value));
     }
 

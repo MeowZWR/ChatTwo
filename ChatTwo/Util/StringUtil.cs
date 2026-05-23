@@ -2,9 +2,9 @@ using System.Text;
 
 namespace ChatTwo.Util;
 
-internal static class StringUtil
+public static class StringUtil
 {
-    internal static byte[] ToTerminatedBytes(this string s)
+    public static byte[] ToTerminatedBytes(this string s)
     {
         var utf8 = Encoding.UTF8;
         var bytes = new byte[utf8.GetByteCount(s) + 1];
@@ -14,7 +14,7 @@ internal static class StringUtil
     }
 
     // Taken from https://stackoverflow.com/a/4975942
-    internal static string BytesToString(long byteCount)
+    public static string BytesToString(long byteCount)
     {
         string[] suf = ["B", "KB", "MB", "GB", "TB", "PB", "EB"]; // Longs run out around EB
         if (byteCount == 0)

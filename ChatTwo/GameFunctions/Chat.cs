@@ -3,7 +3,6 @@ using ChatTwo.Code;
 using ChatTwo.GameFunctions.Types;
 using ChatTwo.Resources;
 using ChatTwo.Util;
-using Dalamud.Game.Config;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Hooking;
 using Dalamud.Memory;
@@ -24,7 +23,7 @@ using ValueType = FFXIVClientStructs.FFXIV.Component.GUI.AtkValueType;
 
 namespace ChatTwo.GameFunctions;
 
-internal sealed unsafe class Chat : IDisposable
+public sealed unsafe class Chat : IDisposable
 {
     // Functions
     [Signature("48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 48 8D B9 ?? ?? ?? ?? 33 C0")]
@@ -52,17 +51,6 @@ internal sealed unsafe class Chat : IDisposable
     private readonly char* LastTypedCharacter = null!;
 
     private Plugin Plugin { get; }
-
-    private enum PlayerNameDisplayType : uint
-    {
-        FullName = 0,
-        SurnameAbbreviated = 1,
-        ForenameAbbreviated = 2,
-        Initials = 3
-    }
-
-    private long LastPlayerNameDisplayTypeRefresh;
-    private PlayerNameDisplayType CurrentPlayerNameDisplayType = PlayerNameDisplayType.FullName;
 
     public Chat(Plugin plugin)
     {
@@ -96,16 +84,16 @@ internal sealed unsafe class Chat : IDisposable
         ContextMenuTellInForayHook?.Dispose();
     }
 
-    internal string? GetLinkshellName(uint idx)
+    public static string? GetLinkshellName(uint idx)
     {
         var utf = InfoProxyChat.Instance()->GetLinkShellName(idx);
         return utf.HasValue ? utf.ToString() : null;
     }
 
-    internal string? GetCrossLinkshellName(uint idx)
+    public static string? GetCrossLinkshellName(uint idx)
     {
         var utf = InfoProxyCrossWorldLinkshell.Instance()->GetCrossworldLinkshellName(idx);
-        return utf == null ? null : utf->ToString();
+        return utf != null ? utf->ToString() : null;
     }
 
     private static int GetRotateIdx(RotateMode mode) => mode switch
@@ -115,7 +103,7 @@ internal sealed unsafe class Chat : IDisposable
         _ => 0,
     };
 
-    internal static void RotateLinkshellHistory(RotateMode mode)
+    public static void RotateLinkshellHistory(RotateMode mode)
     {
         var uiModule = UIModule.Instance();
         if (mode == RotateMode.None)
@@ -124,12 +112,12 @@ internal sealed unsafe class Chat : IDisposable
         uiModule->RotateLinkshellHistory(GetRotateIdx(mode));
     }
 
-    internal static void RotateCrossLinkshellHistory(RotateMode mode) =>
-        UIModule.Instance()->RotateCrossLinkshellHistory(GetRotateIdx(mode));
+    public static void RotateCrossLinkshellHistory(RotateMode mode)
+        => UIModule.Instance()->RotateCrossLinkshellHistory(GetRotateIdx(mode));
 
     // This function looks up a channel's user-defined color.
     // If this function ever returns 0, it returns null instead.
-    internal uint? GetChannelColor(ChatType type)
+    public uint? GetChannelColor(ChatType type)
     {
         var parent = type.Parent();
         switch (parent)
@@ -188,7 +176,7 @@ internal sealed unsafe class Chat : IDisposable
 
                 try
                 {
-                    Plugin.ChatLogWindow.Activated(new ChatActivatedArgs(new ChannelSwitchInfo(null)) { Input = input, });
+                    Plugin.ChatLog.Activated(new ChatActivatedArgs(new ChannelSwitchInfo(null)) { Input = input });
                 }
                 catch (Exception ex)
                 {
@@ -211,13 +199,13 @@ internal sealed unsafe class Chat : IDisposable
         {
             // We already called this function once, so we skip the duplicated call
             // Also return the original value here so that vanilla chat receives all information
-            if (Plugin.ChatLogWindow.TellSpecial)
+            if (Plugin.ChatLog.TellSpecial)
             {
                 Plugin.Log.Information("Return early to prevent duplicated call...");
                 return ChatLogRefreshHook!.Original(log, eventId, value);
             }
 
-            Plugin.ChatLogWindow.Activated(new ChatActivatedArgs(new ChannelSwitchInfo(null)) { AddIfNotPresent = addIfNotPresent, });
+            Plugin.ChatLog.Activated(new ChatActivatedArgs(new ChannelSwitchInfo(null)) { AddIfNotPresent = addIfNotPresent });
         }
         catch (Exception ex)
         {
@@ -259,7 +247,7 @@ internal sealed unsafe class Chat : IDisposable
         }
 
         // If we already established a Foray tell session, don't let the game relabel overwrite it
-        if (Plugin.ChatLogWindow != null && Plugin.ChatLogWindow.TellSpecial)
+        if (Plugin.ChatLog.TellSpecial)
             return ret;
 
         // If ChatTwo is currently on a Mare linkshell channel (either fixed or temp),
@@ -289,7 +277,7 @@ internal sealed unsafe class Chat : IDisposable
             return;
         }
 
-        SetChannel((InputChannel) replyMode);
+        SetChannelWithExtraChat((InputChannel) replyMode);
         ReplyInSelectedChatModeHook!.Original(agent);
     }
 
@@ -300,7 +288,7 @@ internal sealed unsafe class Chat : IDisposable
             try
             {
                 var target = new TellTarget(playerName->ToString(), worldId, contentId, (TellReason) reason);
-                Plugin.ChatLogWindow.Activated(new ChatActivatedArgs(new ChannelSwitchInfo(InputChannel.Tell, permanent: setChatType))
+                Plugin.ChatLog.Activated(new ChatActivatedArgs(new ChannelSwitchInfo(InputChannel.Tell, permanent: setChatType))
                 {
                     TellReason = (TellReason) reason,
                     TellTarget = target,
@@ -325,7 +313,7 @@ internal sealed unsafe class Chat : IDisposable
             try
             {
                 var target = new TellTarget(playerName->ToString(), worldId, contentId, (TellReason) reason);
-                Plugin.ChatLogWindow.Activated(new ChatActivatedArgs(new ChannelSwitchInfo(InputChannel.Tell))
+                Plugin.ChatLog.Activated(new ChatActivatedArgs(new ChannelSwitchInfo(InputChannel.Tell))
                 {
                     TellReason = (TellReason) reason,
                     TellTarget = target,
@@ -345,7 +333,7 @@ internal sealed unsafe class Chat : IDisposable
     /// Returns true if the channel is any non-linkshell channel, or if the
     /// linkshell actually exists.
     /// </summary>
-    internal static bool ValidAnyLinkshell(InputChannel channel)
+    public static bool IsChannelOrExistingLinkshell(InputChannel channel)
     {
         var idx = channel.LinkshellIndex();
         if (idx == uint.MaxValue || channel.IsExtraChatLinkshell())
@@ -357,14 +345,14 @@ internal sealed unsafe class Chat : IDisposable
         return false;
     }
 
-    internal static bool ValidLinkshell(uint idx)
+    public static bool ValidLinkshell(uint idx)
     {
         if (idx > 7)
             return false;
         return InfoProxyLinkshell.Instance()->LinkShells[(int) idx].Id != 0;
     }
 
-    internal static bool ValidCrossLinkshell(uint idx)
+    public static bool ValidCrossLinkshell(uint idx)
     {
         if (idx > 7)
             return false;
@@ -380,7 +368,7 @@ internal sealed unsafe class Chat : IDisposable
         {
             RotateMode.Forward => 1,
             RotateMode.Reverse => -1,
-            _ => 1
+            _ => 1,
         };
 
         // Iterate up to 8 times to find a valid linkshell.
@@ -394,7 +382,7 @@ internal sealed unsafe class Chat : IDisposable
         return null;
     }
 
-    internal static InputChannel? ResolveTempInputChannel(InputChannel? currentTempChannel, InputChannel channel, RotateMode rotate)
+    public static InputChannel? ResolveTempInputChannel(InputChannel? currentTempChannel, InputChannel channel, RotateMode rotate)
     {
         switch (channel)
         {
@@ -422,14 +410,55 @@ internal sealed unsafe class Chat : IDisposable
         }
     }
 
-    internal void SetChannel(InputChannel channel, TellTarget? tellTarget = null)
+    public void SetChannelWithExtraChat(InputChannel? channel)
+    {
+        channel ??= InputChannel.Say;
+        if (channel != InputChannel.Tell)
+        {
+            Plugin.CurrentTab.CurrentChannel.TellTarget = null;
+            Plugin.CurrentTab.CurrentChannel.TempTellTarget = null;
+        }
+
+        // Instead of calling SetChannel(), we ask the ExtraChat plugin to set a
+        // channel override by just calling the command directly.
+        if (channel.Value.IsExtraChatLinkshell())
+        {
+            // Check that the command is registered in Dalamud so the game code
+            // never sees the command itself.
+            if (!Plugin.CommandManager.Commands.ContainsKey(channel.Value.Prefix()))
+                return;
+
+            // Send the command through the game chat. We can't call
+            // ICommandManager.ProcessCommand() here because ExtraChat only
+            // registers stub handlers and actually processes its commands in a
+            // SendMessage detour.
+            var bytes = Encoding.UTF8.GetBytes(channel.Value.Prefix());
+            ChatBox.SendMessageUnsafe(bytes);
+
+            Plugin.CurrentTab.CurrentChannel.Channel = channel.Value;
+            return;
+        }
+
+        // Mare linkshells are external channels; do not call game SetChannel
+        if (channel.Value.IsMareLinkshell())
+        {
+            Plugin.CurrentTab.CurrentChannel.Channel = channel.Value;
+            return;
+        }
+
+        var target = Plugin.CurrentTab.CurrentChannel.TempTellTarget ?? Plugin.CurrentTab.CurrentChannel.TellTarget;
+        SetChannel(channel.Value, target);
+        Plugin.CurrentTab.CurrentChannel.Channel = channel.Value;
+    }
+
+    private void SetChannel(InputChannel channel, TellTarget? tellTarget = null)
     {
         // ExtraChat linkshells aren't supported in game so we never want to
         // call the ChangeChatChannel function with them.
         //
-        // Callers should call ChatLogWindow.SetChannel() which handles
-        // ExtraChat channels
-        if (channel.IsExtraChatLinkshell())
+        // Callers should call SetChannelWithExtraChat() which handles
+        // ExtraChat and Mare channels
+        if (channel.IsExtraChatLinkshell() || channel.IsMareLinkshell())
             return;
 
         var target = Utf8String.FromString(tellTarget?.ToTargetString() ?? "");
@@ -437,14 +466,13 @@ internal sealed unsafe class Chat : IDisposable
         if (idx == uint.MaxValue)
             idx = 0;
 
-        if (!ValidAnyLinkshell(channel))
-            return;
+        if (IsChannelOrExistingLinkshell(channel))
+            RaptureShellModule.Instance()->ChangeChatChannel(tellTarget != null ? 17 : (int)channel, idx, target, true);
 
-        RaptureShellModule.Instance()->ChangeChatChannel(tellTarget != null ? 17 : (int)channel, idx, target, true);
         target->Dtor(true);
     }
 
-    internal void SetEurekaTellChannel(string name, string worldName, ushort worldId, ulong accountId, ulong objectId, ushort idSelector, bool setChatType)
+    public void SetEurekaTellChannel(string name, string worldName, ushort worldId, ulong accountId, ulong objectId, ushort idSelector, bool setChatType)
     {
         // param6 is 0 for contentId and 1 for objectId
         // param7 is always 0 ?
@@ -454,7 +482,7 @@ internal sealed unsafe class Chat : IDisposable
 
         // Send tell via CommandInner later and let the game handle it
         // Only works because we use the SetTellTargetInForay function to set all required information
-        Plugin.ChatLogWindow.TellSpecial = true;
+        Plugin.ChatLog.TellSpecial = true;
 
         var utfName = Utf8String.FromString(name);
         var utfWorld = Utf8String.FromString(worldName);
@@ -466,7 +494,7 @@ internal sealed unsafe class Chat : IDisposable
         utfWorld->Dtor(true);
     }
 
-    internal TellHistoryInfo? GetTellHistoryInfo(int index)
+    public TellHistoryInfo? GetTellHistoryInfo(int index)
     {
         var acquaintance = AcquaintanceModule.Instance()->GetTellHistory(index);
         if (acquaintance == null || acquaintance->ContentId == 0)
@@ -479,7 +507,7 @@ internal sealed unsafe class Chat : IDisposable
         return new TellHistoryInfo(name, world, contentId);
     }
 
-    internal void SendTellUsingCommandInner(byte[] message)
+    public void SendTellUsingCommandInner(byte[] message)
     {
         var mes = Utf8String.FromSequence(message.NullTerminate());
 
@@ -489,7 +517,7 @@ internal sealed unsafe class Chat : IDisposable
         mes->Dtor(true);
     }
 
-    internal void SendTell(TellReason reason, ulong contentId, string name, ushort homeWorld, byte[] message, string rawText)
+    public void SendTell(TellReason reason, ulong contentId, string name, ushort homeWorld, byte[] message, string rawText)
     {
         if (contentId == 0)
         {
@@ -534,7 +562,7 @@ internal sealed unsafe class Chat : IDisposable
         return output.AsSpan().ToArray();
     }
 
-    internal bool IsCharValid(char c)
+    public bool IsCharValid(char c)
     {
         if (c == '/')
             return true;
@@ -549,39 +577,7 @@ internal sealed unsafe class Chat : IDisposable
         return wasValid;
     }
 
-    private PlayerNameDisplayType GetNameDisplayType()
-    {
-        var ok = Plugin.GameConfig.TryGet(UiConfigOption.LogNameType, out uint type);
-        if (!ok || !Enum.IsDefined(typeof(PlayerNameDisplayType), type))
-            return PlayerNameDisplayType.FullName;
-        return (PlayerNameDisplayType) type;
-    }
-
-    internal string AbbreviatePlayerName(string playerName)
-    {
-        if (LastPlayerNameDisplayTypeRefresh + 5_000 < Environment.TickCount64)
-        {
-            LastPlayerNameDisplayTypeRefresh = Environment.TickCount64;
-            CurrentPlayerNameDisplayType = GetNameDisplayType();
-        }
-
-        if (CurrentPlayerNameDisplayType == PlayerNameDisplayType.FullName)
-            return playerName;
-
-        var split = playerName.Split(' ');
-        if (split.Length != 2)
-            return playerName;
-
-        return CurrentPlayerNameDisplayType switch
-        {
-            PlayerNameDisplayType.SurnameAbbreviated => $"{split.First()} {split.Last().FirstOrDefault('A')}.",
-            PlayerNameDisplayType.ForenameAbbreviated => $"{split.First().FirstOrDefault('A')}. {split.Last()}",
-            PlayerNameDisplayType.Initials => $"{split.First().FirstOrDefault('A')}. {split.Last().FirstOrDefault('A')}.",
-            _ => playerName
-        };
-    }
-
-    internal bool CheckHideFlags()
+    public static bool CheckHideFlags()
     {
         // Only hide the chat in a cutscene when the vanilla chat would've
         // also been hidden. This prevents Chat 2 from hiding for a split

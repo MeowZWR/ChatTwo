@@ -9,7 +9,7 @@ using Dalamud.Bindings.ImGui;
 
 namespace ChatTwo.Ui.SettingsTabs;
 
-internal sealed class About : ISettingsTab
+public sealed class About : ISettingsTab
 {
     public string Name => string.Format(Language.Options_About_Tab, Plugin.PluginName) + "###tabs-about";
 
@@ -26,7 +26,7 @@ internal sealed class About : ISettingsTab
         "zomsakura", "Sirayuki"
     ];
 
-    internal About()
+    public About()
     {
         Translators.Sort((a, b) => string.Compare(a.ToLowerInvariant(), b.ToLowerInvariant(), StringComparison.Ordinal));
     }

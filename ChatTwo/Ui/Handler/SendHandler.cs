@@ -1,0 +1,174 @@
+﻿using System.Text;
+using ChatTwo.Code;
+using ChatTwo.GameFunctions;
+using ChatTwo.GameFunctions.Types;
+using ChatTwo.Util;
+using Lumina.Extensions;
+
+namespace ChatTwo.Ui.Handler;
+
+public class SendHandler
+{
+    private readonly Plugin Plugin;
+
+    public List<string> InputBacklog = [];
+    public int InputBacklogIdx = -1;
+
+    private string Message = string.Empty;
+    private bool TellSpecialUnused;
+
+    public SendHandler(Plugin plugin)
+    {
+        Plugin = plugin;
+    }
+
+    public void SendWithoutContext(string message)
+    {
+        Message = message;
+        SendChatBox(Plugin.CurrentTab, ref Message, ref TellSpecialUnused);
+    }
+
+    public void SendChatBox(Tab activeTab, ref string chatInput, ref bool tellSpecial)
+    {
+        if (!string.IsNullOrWhiteSpace(chatInput))
+        {
+            var trimmed = chatInput.Trim();
+            AddBacklog(trimmed);
+            InputBacklogIdx = -1;
+
+            if (HasTranslationCommand(trimmed))
+            {
+                activeTab.CurrentChannel.ResetTempChannel();
+                chatInput = string.Empty;
+                return;
+            }
+
+            if (tellSpecial)
+            {
+                var tellBytes = Encoding.UTF8.GetBytes(trimmed);
+                AutoTranslate.ReplaceWithPayload(ref tellBytes);
+
+                Plugin.Functions.Chat.SendTellUsingCommandInner(tellBytes);
+                tellSpecial = false;
+
+                activeTab.CurrentChannel.ResetTempChannel();
+                chatInput = string.Empty;
+                return;
+            }
+
+            if (!trimmed.StartsWith('/'))
+            {
+                var target = activeTab.TellTarget.IsSet() ? activeTab.TellTarget : activeTab.CurrentChannel.TempTellTarget ?? activeTab.CurrentChannel.TellTarget;
+                if (target != null)
+                {
+                    // Foray: ensure session and send via ExecuteCommandInner regardless of focus changes
+                    if (Sheets.IsInForay())
+                    {
+                        var worldName = Sheets.WorldSheet.TryGetRow(target.World, out var w) ? w.Name.ExtractText() : string.Empty;
+
+                        // Recover contentId if lost due to focus changes by checking history
+                        var contentIdToUse = target.ContentId;
+                        if (contentIdToUse == 0)
+                        {
+                            var hist = Plugin.Functions.Chat.GetTellHistoryInfo(0);
+                            if (hist != null && string.Equals(hist.Name, target.Name, StringComparison.Ordinal))
+                                contentIdToUse = hist.ContentId;
+                        }
+
+                        Plugin.Functions.Chat.SetEurekaTellChannel(target.Name, worldName, (ushort)target.World, 0, contentIdToUse, 0, true);
+
+                        var forayBytes = Encoding.UTF8.GetBytes(trimmed);
+                        AutoTranslate.ReplaceWithPayload(ref forayBytes);
+
+                        Plugin.Functions.Chat.SendTellUsingCommandInner(forayBytes);
+
+                        activeTab.CurrentChannel.ResetTempChannel();
+                        chatInput = string.Empty;
+                        return;
+                    }
+
+                    // ContentId 0 is a case where we can't directly send messages, so we send a /tell formatted message and let the game handle it
+                    if (target.ContentId == 0)
+                    {
+                        trimmed = $"/tell {target.ToTargetString()} {trimmed}";
+                        var tellBytes = Encoding.UTF8.GetBytes(trimmed);
+                        AutoTranslate.ReplaceWithPayload(ref tellBytes);
+
+                        ChatBox.SendMessageUnsafe(tellBytes);
+
+                        activeTab.CurrentChannel.ResetTempChannel();
+                        chatInput = string.Empty;
+                        return;
+                    }
+
+                    var reason = target.Reason;
+                    var world = Sheets.WorldSheet.GetRow(target.World);
+                    if (world is { IsPublic: true } || world.RowId > 1000)
+                    {
+                        if (reason == TellReason.Reply && GameFunctions.GameFunctions.GetFriends().Any(friend => friend.ContentId == target.ContentId))
+                            reason = TellReason.Friend;
+
+                        var tellBytes = Encoding.UTF8.GetBytes(trimmed);
+                        AutoTranslate.ReplaceWithPayload(ref tellBytes);
+
+                        Plugin.Functions.Chat.SendTell(reason, target.ContentId, target.Name, (ushort) world.RowId, tellBytes, trimmed);
+                    }
+
+                    activeTab.CurrentChannel.ResetTempChannel();
+                    chatInput = string.Empty;
+                    return;
+                }
+
+                // If current channel is Mare linkshell, send via IPC instead of game chat
+                var mareChannel = activeTab.CurrentChannel.UseTempChannel ? activeTab.CurrentChannel.TempChannel : activeTab.CurrentChannel.Channel;
+                if (mareChannel.IsMareLinkshell())
+                {
+                    var idx = (int)mareChannel.LinkshellIndex();
+                    Plugin.MareChat?.SendMessage(idx, trimmed);
+                    activeTab.CurrentChannel.ResetTempChannel();
+                    chatInput = string.Empty;
+                    return;
+                }
+
+                if (activeTab.CurrentChannel.UseTempChannel)
+                    trimmed = $"{activeTab.CurrentChannel.TempChannel.Prefix()} {trimmed}";
+                else
+                    trimmed = $"{activeTab.CurrentChannel.Channel.Prefix()} {trimmed}";
+            }
+
+            var bytes = Encoding.UTF8.GetBytes(trimmed);
+            AutoTranslate.ReplaceWithPayload(ref bytes);
+
+            ChatBox.SendMessageUnsafe(bytes);
+        }
+
+        activeTab.CurrentChannel.ResetTempChannel();
+        chatInput = string.Empty;
+    }
+
+    private bool HasTranslationCommand(string trimmed)
+    {
+        var messageBytes = Encoding.UTF8.GetBytes(trimmed);
+        if (AutoTranslate.StartsWithCommand(ref messageBytes))
+        {
+            ChatBox.SendMessageUnsafe(messageBytes);
+            return true;
+        }
+
+        return false;
+    }
+
+    public void AddBacklog(string message)
+    {
+        for (var i = 0; i < InputBacklog.Count; i++)
+        {
+            if (InputBacklog[i] != message)
+                continue;
+
+            InputBacklog.RemoveAt(i);
+            break;
+        }
+
+        InputBacklog.Add(message);
+    }
+}

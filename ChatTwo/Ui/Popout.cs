@@ -1,25 +1,42 @@
 ﻿using System.Numerics;
+using ChatTwo.Code;
+using ChatTwo.GameFunctions.Types;
+using ChatTwo.Resources;
+using ChatTwo.Ui.Handler;
+using ChatTwo.Util;
 using Dalamud.Interface.Style;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface;
+using Lumina.Extensions;
 
 namespace ChatTwo.Ui;
 
-internal class Popout : Window
+public class Popout : Window, IChatWindow
 {
-    private readonly ChatLogWindow ChatLogWindow;
+    private readonly Plugin Plugin;
     private readonly Tab Tab;
     private readonly int Idx;
 
     private long FrameTime; // set every frame
     private long LastActivityTime = Environment.TickCount64;
 
-    public Popout(ChatLogWindow chatLogWindow, Tab tab, int idx) : base($"{tab.Name}##popout")
+    private readonly string ChatChannelPicker = "chat-popout-channel-picker";
+
+    public readonly InputHandler InputHandler;
+
+    public Vector2 LastWindowPos { get; set; } = Vector2.Zero;
+    public Vector2 LastWindowSize { get; set; } = Vector2.Zero;
+    public HideState CurrentHideState { get; set; } = HideState.None;
+
+    public Popout(Plugin plugin, Tab tab, int idx) : base($"{tab.Name}##popout")
     {
-        ChatLogWindow = chatLogWindow;
+        Plugin = plugin;
         Tab = tab;
         Idx = idx;
+
+        InputHandler = new InputHandler(this, plugin, $"ChatLog{idx}-{tab.Name}");
 
         Size = new Vector2(350, 350);
         SizeCondition = ImGuiCond.FirstUseEver;
@@ -27,6 +44,8 @@ internal class Popout : Window
         IsOpen = true;
         RespectCloseHotkey = false;
         DisableWindowSounds = true;
+
+        ChatChannelPicker += $"-{idx}-{tab.Name}";
     }
 
     public override void PreOpenCheck()
@@ -38,7 +57,12 @@ internal class Popout : Window
     public override bool DrawConditions()
     {
         FrameTime = Environment.TickCount64;
-        if (Tab.IndependentHide ? HideStateCheck() : ChatLogWindow.IsHidden)
+
+        var isHidden = Tab.IndependentHide
+            ? HideStateHelper.HideStateCheck(this, Tab.HideInBattle, Tab.HideDuringCutscenes, Tab.HideWhenNotLoggedIn, false)
+            : Plugin.ChatLog.IsHidden;
+
+        if (isHidden)
             return false;
 
         if (!Plugin.Config.HideWhenInactive || (!Plugin.Config.InactivityHideActiveDuringBattle && Plugin.InBattle) || !Tab.UnhideOnActivity)
@@ -49,7 +73,7 @@ internal class Popout : Window
 
         // Activity in the tab, this popout window, or the main chat log window.
         var lastActivityTime = Math.Max(Tab.LastActivity, LastActivityTime);
-        lastActivityTime = Math.Max(lastActivityTime, ChatLogWindow.LastActivityTime);
+        lastActivityTime = Math.Max(lastActivityTime, InputHandler.LastActivityTime);
         return FrameTime - lastActivityTime <= 1000 * Plugin.Config.InactivityHideTimeout;
     }
 
@@ -68,7 +92,7 @@ internal class Popout : Window
         if (!Tab.CanResize)
             Flags |= ImGuiWindowFlags.NoResize;
 
-        if (!ChatLogWindow.PopOutDocked[Idx])
+        if (!Plugin.ChatLog.PopOutDocked[Idx])
         {
             var alpha = Tab.IndependentOpacity ? Tab.Opacity : Plugin.Config.WindowAlpha;
             BgAlpha = alpha / 100f;
@@ -79,22 +103,59 @@ internal class Popout : Window
     {
         using var id = ImRaii.PushId($"popout-{Tab.Identifier}");
 
+        LastWindowSize = ImGui.GetWindowSize();
+        LastWindowPos = ImGui.GetWindowPos();
+
+        if (ImGui.IsWindowHovered(ImGuiHoveredFlags.ChildWindows))
+            LastActivityTime = FrameTime;
+
         if (!Plugin.Config.ShowPopOutTitleBar)
         {
             ImGui.TextUnformatted(Tab.Name);
             ImGui.Separator();
         }
 
-        var handler = ChatLogWindow.HandlerLender.Borrow();
-        ChatLogWindow.DrawMessageLog(Tab, handler, ImGui.GetContentRegionAvail().Y, false);
+        var remainingHeight = Tab.SupportsInput
+            ? Plugin.ChatLog.GetRemainingHeightForMessageLog(false)
+            : ImGui.GetContentRegionAvail().Y;
 
-        if (ImGui.IsWindowHovered(ImGuiHoveredFlags.ChildWindows))
-            LastActivityTime = FrameTime;
+        Plugin.ChatLog.DrawMessageLog(Tab, InputHandler.PayloadHandler, remainingHeight, false);
+
+        if (!Tab.SupportsInput)
+            return;
+
+        // This tab has a fixed channel, so we force this channel to be always set as current
+        if (Tab.Channel is not null)
+            Tab.CurrentChannel.SetChannel(Tab.Channel.Value);
+
+        using (ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, Vector2.Zero))
+            Plugin.ChatLog.DrawChannelName(Tab);
+
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Comment) && Tab.Channel is null)
+            ImGui.OpenPopup(ChatChannelPicker);
+
+        if (Tab.Channel is not null && ImGui.IsItemHovered())
+            ImGuiUtil.Tooltip(Language.ChatLog_SwitcherDisabled);
+
+        using (var popup = ImRaii.Popup(ChatChannelPicker))
+        {
+            if (popup)
+            {
+                foreach (var (name, channel) in GetValidPopupChannels())
+                    if (ImGui.Selectable(name))
+                        Tab.CurrentChannel.SetChannel(channel);
+            }
+        }
+
+        ImGui.SameLine();
+
+        var tellSpecial = false;
+        InputHandler.DrawInputArea(Tab, ImGui.GetContentRegionAvail().X, ref tellSpecial);
     }
 
     public override void PostDraw()
     {
-        ChatLogWindow.PopOutDocked[Idx] = ImGui.IsWindowDocked();
+        Plugin.ChatLog.PopOutDocked[Idx] = ImGui.IsWindowDocked();
 
         if (Plugin.Config is { OverrideStyle: true, ChosenStyle: not null })
             StyleModel.GetConfiguredStyles()?.FirstOrDefault(style => style.Name == Plugin.Config.ChosenStyle)?.Pop();
@@ -102,53 +163,51 @@ internal class Popout : Window
 
     public override void OnClose()
     {
-        ChatLogWindow.PopOutWindows.Remove(Tab.Identifier);
-        ChatLogWindow.Plugin.WindowSystem.RemoveWindow(this);
+        Plugin.ChatLog.PopOutWindows.Remove(Tab.Identifier);
+        Plugin.WindowSystem.RemoveWindow(this);
 
         Tab.PopOut = false;
-        ChatLogWindow.Plugin.SaveConfig();
+        Plugin.SaveConfig();
     }
 
-    private enum HideState
+    private Dictionary<string, InputChannel> GetValidPopupChannels()
     {
-        None,
-        Cutscene,
-        CutsceneOverride,
-        User,
-        Battle
-    }
-
-    private HideState CurrentHideState = HideState.None;
-
-    private bool HideStateCheck()
-    {
-        // if the chat has no hide state set, and the player has entered battle, we hide chat if they have configured it
-        if (Tab.HideInBattle && CurrentHideState == HideState.None && Plugin.InBattle)
-            CurrentHideState = HideState.Battle;
-
-        // If the chat is hidden because of battle, we reset it here
-        if (CurrentHideState is HideState.Battle && !Plugin.InBattle)
-            CurrentHideState = HideState.None;
-
-        // if the chat has no hide state and in a cutscene, set the hide state to cutscene
-        if (Tab.HideDuringCutscenes && CurrentHideState == HideState.None && (Plugin.CutsceneActive || Plugin.GposeActive))
+        var channels = new Dictionary<string, InputChannel>();
+        foreach (var channel in Enum.GetValues<InputChannel>())
         {
-            if (ChatLogWindow.Plugin.Functions.Chat.CheckHideFlags())
-                CurrentHideState = HideState.Cutscene;
+            if (channel is InputChannel.Invalid or InputChannel.Tell)
+                continue;
+
+            var name = Sheets.LogFilterSheet.FirstOrNull(row => row.LogKind == (byte) channel.ToChatType())?.Name.ToString() ?? channel.ToChatType().Name();
+            if (channel.IsLinkshell())
+            {
+                var lsName = GameFunctions.Chat.GetLinkshellName(channel.LinkshellIndex());
+                if (string.IsNullOrWhiteSpace(lsName))
+                    continue;
+
+                name += $": {lsName}";
+            }
+
+            if (channel.IsCrossLinkshell())
+            {
+                var lsName = GameFunctions.Chat.GetCrossLinkshellName(channel.LinkshellIndex());
+                if (string.IsNullOrWhiteSpace(lsName))
+                    continue;
+
+                name += $": {lsName}";
+            }
+
+            // Check if the linkshell with this index is registered in
+            // the ExtraChat plugin by seeing if the command is
+            // registered. The command gets registered only if a
+            // linkshell is assigned (and even gets unassigned if the
+            // index changes!).
+            if (channel.IsExtraChatLinkshell() && !Plugin.CommandManager.Commands.ContainsKey(channel.Prefix()))
+                continue;
+
+            channels.Add(name, channel);
         }
 
-        // if the chat is hidden because of a cutscene and no longer in a cutscene, set the hide state to none
-        if (CurrentHideState is HideState.Cutscene or HideState.CutsceneOverride && !Plugin.CutsceneActive && !Plugin.GposeActive)
-            CurrentHideState = HideState.None;
-
-        // if the chat is hidden because of a cutscene and the chat has been activated, show chat
-        if (CurrentHideState == HideState.Cutscene && ChatLogWindow.Activate)
-            CurrentHideState = HideState.CutsceneOverride;
-
-        // if the user hid the chat and is now activating chat, reset the hide state
-        if (CurrentHideState == HideState.User && ChatLogWindow.Activate)
-            CurrentHideState = HideState.None;
-
-        return CurrentHideState is HideState.Cutscene or HideState.User or HideState.Battle || (Tab.HideWhenNotLoggedIn && !Plugin.ClientState.IsLoggedIn);
+        return channels;
     }
 }

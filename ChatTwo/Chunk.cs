@@ -1,4 +1,6 @@
+using System.Numerics;
 using ChatTwo.Code;
+using ChatTwo.Util;
 using Dalamud.Game.Text.SeStringHandling;
 using MessagePack;
 
@@ -10,7 +12,7 @@ namespace ChatTwo;
 public abstract class Chunk
 {
     [IgnoreMember]
-    internal Message? Message { get; set; }
+    public Message? Message { get; set; }
 
     [Key(0)]
     public ChunkSource Source { get; set; }
@@ -25,7 +27,7 @@ public abstract class Chunk
         Link = link;
     }
 
-    internal SeString? GetSeString() => Source switch
+    public SeString? GetSeString() => Source switch
     {
         ChunkSource.None => null,
         ChunkSource.Sender => Message?.SenderSource,
@@ -36,7 +38,7 @@ public abstract class Chunk
     /// <summary>
     /// Get some basic text for use in generating hashes.
     /// </summary>
-    internal string StringValue()
+    public string StringValue()
     {
         return this switch
         {
@@ -57,18 +59,20 @@ public enum ChunkSource
 [MessagePackObject(AllowPrivate = true)]
 public class TextChunk : Chunk
 {
-    [Key(2)] public ChatType? FallbackColour;
+    [Key(2)] public ChatType? FallbackColor;
     [Key(3)] public uint? Foreground;
     [Key(4)] public uint? Glow;
     [Key(5)] public bool Italic;
     [Key(6)] public string Content;
+
+    [IgnoreMember] public Vector4? Color;
 
     private TextChunk(Chunk chunk, string content) : base(chunk.Source, chunk.Link)
     {
         Content = content;
     }
 
-    internal TextChunk(ChunkSource source, Payload? link, string content) : base(source, link)
+    public TextChunk(ChunkSource source, Payload? link, string content) : base(source, link)
     {
         // This has been null in the past, and it broke rendering code.
         // ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
@@ -76,15 +80,17 @@ public class TextChunk : Chunk
     }
 
     // ReSharper disable once UnusedMember.Global // Used by MessagePack
-    public TextChunk(ChunkSource source, Payload? link, ChatType? fallbackColour, uint? foreground, uint? glow, bool italic, string content) : base(source, link)
+    public TextChunk(ChunkSource source, Payload? link, ChatType? fallbackColor, uint? foreground, uint? glow, bool italic, string content) : base(source, link)
     {
-        FallbackColour = fallbackColour;
+        FallbackColor = fallbackColor;
         Foreground = foreground;
         Glow = glow;
         Italic = italic;
         // See above.
         // ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
         Content = content ?? "";
+
+        Color = ColourUtil.RgbaToVector4(foreground);
     }
 
     /// <summary>
@@ -94,10 +100,11 @@ public class TextChunk : Chunk
     {
         return new TextChunk(source, link, content)
         {
-            FallbackColour = FallbackColour,
+            FallbackColor = FallbackColor,
             Foreground = Foreground,
             Glow = Glow,
             Italic = Italic,
+            Color = ColourUtil.RgbaToVector4(Foreground),
         };
     }
 
@@ -108,10 +115,11 @@ public class TextChunk : Chunk
     {
         return new TextChunk(chunk, content)
         {
-            FallbackColour = FallbackColour,
+            FallbackColor = FallbackColor,
             Foreground = Foreground,
             Glow = Glow,
             Italic = Italic,
+            Color = ColourUtil.RgbaToVector4(Foreground),
         };
     }
 }

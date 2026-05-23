@@ -8,6 +8,7 @@ using Dalamud.Configuration;
 using Dalamud.Game.ClientState.Keys;
 using Dalamud.Interface.FontIdentifier;
 using Dalamud.Bindings.ImGui;
+using Lumina.Text.ReadOnly;
 
 namespace ChatTwo;
 
@@ -82,6 +83,7 @@ public class Configuration : IPluginConfiguration
     public bool ShowTitleBar;
     public bool ShowPopOutTitleBar = true;
     public bool DatabaseBattleMessages;
+    public bool DatabaseGatherCraftMessages;
     public bool LoadPreviousSession;
     public bool FilterIncludePreviousSessions;
     public bool SortAutoTranslate;
@@ -250,6 +252,7 @@ public class Configuration : IPluginConfiguration
         ShowTitleBar = other.ShowTitleBar;
         ShowPopOutTitleBar = other.ShowPopOutTitleBar;
         DatabaseBattleMessages = other.DatabaseBattleMessages;
+        DatabaseGatherCraftMessages = other.DatabaseGatherCraftMessages;
         LoadPreviousSession = other.LoadPreviousSession;
         FilterIncludePreviousSessions = other.FilterIncludePreviousSessions;
         SortAutoTranslate = other.SortAutoTranslate;
@@ -296,7 +299,7 @@ public enum UnreadMode
 
 public static class UnreadModeExt
 {
-    internal static string Name(this UnreadMode mode) => mode switch
+    public static string Name(this UnreadMode mode) => mode switch
     {
         UnreadMode.All => Language.UnreadMode_All,
         UnreadMode.Unseen => Language.UnreadMode_Unseen,
@@ -304,7 +307,7 @@ public static class UnreadModeExt
         _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null),
     };
 
-    internal static string? Tooltip(this UnreadMode mode) => mode switch
+    public static string? Tooltip(this UnreadMode mode) => mode switch
     {
         UnreadMode.All => Language.UnreadMode_All_Tooltip,
         UnreadMode.Unseen => Language.UnreadMode_Unseen_Tooltip,
@@ -333,6 +336,7 @@ public class Tab
     public bool IndependentOpacity;
     public float Opacity = 100f;
     public bool InputDisabled;
+    public bool SupportsInput;
 
     public bool CanMove = true;
     public bool CanResize = true;
@@ -360,6 +364,27 @@ public class Tab
 
     public bool Matches(Message message)
     {
+        if (Channel == InputChannel.Tell && TellTarget.IsSet())
+        {
+            if (!message.Code.IsPlayerMessage())
+                return false;
+
+            if (TellTarget.ContentId == 0)
+            {
+                var target = TellTarget.Empty();
+                foreach (var payload in new ReadOnlySeString(message.SenderSource.Encode()))
+                {
+                    if (target.FromCharacterLink(payload))
+                        break; // Character link found
+                }
+
+                if (target.CompareNames(TellTarget))
+                    TellTarget.ContentId = message.ContentId;
+            }
+
+            return message.MatchTellTarget(TellTarget, AllSenderMessages);
+        }
+
         return message.Matches(SelectedChannels, ExtraChatAll, ExtraChatChannels);
     }
 
@@ -396,7 +421,8 @@ public class Tab
             Opacity = Opacity,
             Identifier = Identifier,
             InputDisabled = InputDisabled,
-            CurrentChannel = CurrentChannel,
+            SupportsInput = SupportsInput,
+            CurrentChannel = CurrentChannel.Clone(),
             CanMove = CanMove,
             CanResize = CanResize,
             IndependentHide = IndependentHide,
@@ -408,7 +434,7 @@ public class Tab
             HideWhenInactive = HideWhenInactive,
             IsTempTab = IsTempTab,
             AllSenderMessages = AllSenderMessages,
-            TellTarget = TellTarget.From(TellTarget),
+            TellTarget = TellTarget.Clone(),
         };
     }
 
@@ -573,6 +599,21 @@ public class UsedChannel
     public void SetChannel(InputChannel channel)
     {
         Channel = channel;
+        Name = [];
+    }
+
+    public UsedChannel Clone()
+    {
+        return new UsedChannel
+        {
+            Channel = Channel,
+            Name = Name,
+            TellTarget = TellTarget?.Clone(),
+
+            UseTempChannel = UseTempChannel,
+            TempChannel = TempChannel,
+            TempTellTarget = TempTellTarget?.Clone(),
+        };
     }
 }
 

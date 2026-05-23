@@ -2428,6 +2428,24 @@ namespace ChatTwo.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to If gathering and crafting messages are saved to the database, the size of the database will grow much faster, and there will be a noticeable freeze when saving settings. It is recommended to leave this disabled..
+        /// </summary>
+        internal static string Options_DatabaseGatherCraftMessages_Description {
+            get {
+                return ResourceManager.GetString("Options_DatabaseGatherCraftMessages_Description", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Save crafting and gathering messages in database.
+        /// </summary>
+        internal static string Options_DatabaseGatherCraftMessages_Name {
+            get {
+                return ResourceManager.GetString("Options_DatabaseGatherCraftMessages_Name", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Display.
         /// </summary>
         internal static string Options_Display_Tab {
@@ -2599,11 +2617,11 @@ namespace ChatTwo.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to This disables the channel selection and shows all messages coming from the target..
+        ///   Looks up a localized string similar to Shows all messages coming from the target..
         /// </summary>
-        internal static string Options_Help_SenderMessages {
+        internal static string Options_Help_SenderMessagesV2 {
             get {
-                return ResourceManager.GetString("Options_Help_SenderMessages", resourceCulture);
+                return ResourceManager.GetString("Options_Help_SenderMessagesV2", resourceCulture);
             }
         }
         
@@ -3364,6 +3382,15 @@ namespace ChatTwo.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Set to target.
+        /// </summary>
+        internal static string Options_Tab_SetTarget {
+            get {
+                return ResourceManager.GetString("Options_Tab_SetTarget", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Add.
         /// </summary>
         internal static string Options_Tabs_Add {
@@ -3414,6 +3441,15 @@ namespace ChatTwo.Resources {
         internal static string Options_Tabs_ChannelTypes_Special {
             get {
                 return ResourceManager.GetString("Options_Tabs_ChannelTypes_Special", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Content ID not set yet, this happens after the first message is received..
+        /// </summary>
+        internal static string Options_Tabs_ContentIdWarning {
+            get {
+                return ResourceManager.GetString("Options_Tabs_ContentIdWarning", resourceCulture);
             }
         }
         
@@ -3580,11 +3616,29 @@ namespace ChatTwo.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Show Input Area.
+        /// </summary>
+        internal static string Options_Tabs_SupportInput {
+            get {
+                return ResourceManager.GetString("Options_Tabs_SupportInput", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Tabs.
         /// </summary>
         internal static string Options_Tabs_Tab {
             get {
                 return ResourceManager.GetString("Options_Tabs_Tab", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Channel selection is disabled for tell tabs..
+        /// </summary>
+        internal static string Options_Tabs_TellTabChannelSelection {
+            get {
+                return ResourceManager.GetString("Options_Tabs_TellTabChannelSelection", resourceCulture);
             }
         }
         

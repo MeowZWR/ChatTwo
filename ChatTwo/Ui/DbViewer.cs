@@ -222,7 +222,7 @@ public class DbViewer : Window
                 try
                 {
                     ulong? character = OnlyCurrentCharacter ? Plugin.PlayerState.ContentId : null;
-                    var channels = SelectedChannels.Select(pair => (int) pair.Key).ToArray();
+                    var channels = SelectedChannels.Select(pair => (byte) pair.Key).ToArray();
 
                     // We only want to fetch count if this is the first page
                     if (CurrentPage == 1)
@@ -288,10 +288,10 @@ public class DbViewer : Window
                 ImGuiUtil.Tooltip(message.Code.Type.Name());
 
             ImGui.TableNextColumn();
-            Plugin.ChatLogWindow.DrawChunks(message.Sender);
+            Plugin.ChatLog.InputHandler.ChunkHandler.DrawChunks(message.Sender);
 
             ImGui.TableNextColumn();
-            Plugin.ChatLogWindow.DrawChunks(message.Content);
+            Plugin.ChatLog.InputHandler.ChunkHandler.DrawChunks(message.Content);
         }
     }
 
@@ -402,7 +402,7 @@ public class DbViewer : Window
             try
             {
                 ulong? character = OnlyCurrentCharacter ? Plugin.PlayerState.ContentId : null;
-                var channels = SelectedChannels.Select(pair => (int)pair.Key).ToArray();
+                var channels = SelectedChannels.Select(pair => (byte)pair.Key).ToArray();
 
                 var rangeMessageEnumerator = Plugin.MessageManager.Store.GetDateRange(AfterDate, BeforeDate, channels, character);
                 var messageHistory = rangeMessageEnumerator.ToArray();
@@ -469,7 +469,7 @@ public class DbViewer : Window
         {
             try
             {
-                var channels = SelectedChannels.Select(pair => (int)pair.Key).ToArray();
+                var channels = SelectedChannels.Select(pair => (byte)pair.Key).ToArray();
 
                 var rangeMessageEnumerator = Plugin.MessageManager.Store.GetDateRange(AfterDate, BeforeDate, channels);
                 var messageHistory = rangeMessageEnumerator.ToArray();
@@ -571,21 +571,21 @@ public class DbViewer : Window
             }
 
             var color = text.Foreground;
-            if (color == null && text.FallbackColour != null)
+            if (color == null && text.FallbackColor != null)
             {
-                var type = text.FallbackColour.Value;
+                var type = text.FallbackColor.Value;
                 color = Plugin.Config.ChatColours.TryGetValue(type, out var col) ? col : type.DefaultColor();
             }
 
             color ??= 0;
 
             var userContent = text.Content;
-            if (Plugin.ChatLogWindow.ScreenshotMode)
+            if (PlayerUtil.ScreenshotMode)
             {
                 if (chunk.Link is PlayerPayload playerPayload)
-                    userContent = Plugin.ChatLogWindow.HidePlayerInString(userContent, playerPayload.PlayerName, playerPayload.World.RowId);
+                    userContent = PlayerUtil.HidePlayerInString(userContent, playerPayload.PlayerName, playerPayload.World.RowId);
                 else if (Plugin.PlayerState.IsLoaded)
-                    userContent = Plugin.ChatLogWindow.HidePlayerInString(userContent, Plugin.PlayerState.CharacterName, Plugin.PlayerState.HomeWorld.RowId);
+                    userContent = PlayerUtil.HidePlayerInString(userContent, Plugin.PlayerState.CharacterName, Plugin.PlayerState.HomeWorld.RowId);
             }
 
             var isNotUrl = text.Link is not UriPayload;

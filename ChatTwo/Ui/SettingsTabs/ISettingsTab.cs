@@ -1,6 +1,6 @@
 namespace ChatTwo.Ui.SettingsTabs;
 
-internal interface ISettingsTab
+public interface ISettingsTab
 {
     string Name { get; }
     void Draw(bool changed);

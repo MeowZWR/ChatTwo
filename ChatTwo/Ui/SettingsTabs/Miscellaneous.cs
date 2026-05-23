@@ -4,7 +4,7 @@ using Dalamud.Bindings.ImGui;
 
 namespace ChatTwo.Ui.SettingsTabs;
 
-internal sealed class Miscellaneous(Configuration mutable) : ISettingsTab
+public sealed class Miscellaneous(Configuration mutable) : ISettingsTab
 {
     private Configuration Mutable { get; } = mutable;
     public string Name => Language.Options_Miscellaneous_Tab + "###tabs-miscellaneous";

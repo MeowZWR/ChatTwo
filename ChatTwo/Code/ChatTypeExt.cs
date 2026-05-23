@@ -4,9 +4,9 @@ using Dalamud.Game.Config;
 
 namespace ChatTwo.Code;
 
-internal static class ChatTypeExt
+public static class ChatTypeExt
 {
-    internal static IEnumerable<(string, ChatType[])> SortOrder =>
+    public static IEnumerable<(string, ChatType[])> SortOrder =>
     [
         (Language.Options_Tabs_ChannelTypes_Special, [ChatType.Debug, ChatType.Urgent, ChatType.Notice]),
 
@@ -96,7 +96,7 @@ internal static class ChatTypeExt
         // UI.
     ];
 
-    internal static string Name(this ChatType type)
+    public static string Name(this ChatType type)
     {
         return type switch
         {
@@ -201,7 +201,7 @@ internal static class ChatTypeExt
         };
     }
 
-    internal static uint? DefaultColor(this ChatType type)
+    public static uint? DefaultColor(this ChatType type)
     {
         switch (type)
         {
@@ -331,7 +331,7 @@ internal static class ChatTypeExt
         }
     }
 
-    internal static InputChannel? ToInputChannel(this ChatType type) => type switch
+    public static InputChannel? ToInputChannel(this ChatType type) => type switch
     {
         ChatType.TellOutgoing => InputChannel.Tell,
         ChatType.Say => InputChannel.Say,
@@ -369,7 +369,7 @@ internal static class ChatTypeExt
         _ => null,
     };
 
-    internal static bool IsGm(this ChatType type) => type switch
+    public static bool IsGm(this ChatType type) => type switch
     {
         ChatType.GmTell => true,
         ChatType.GmSay => true,
@@ -389,7 +389,7 @@ internal static class ChatTypeExt
         _ => false,
     };
 
-    internal static bool IsExtraChatLinkshell(this ChatType type) => type switch
+    public static bool IsExtraChatLinkshell(this ChatType type) => type switch
     {
         ChatType.ExtraChatLinkshell1 => true,
         ChatType.ExtraChatLinkshell2 => true,
@@ -444,7 +444,7 @@ internal static class ChatTypeExt
         _ => UiConfigOption.ColorSay,
     };
 
-    internal static bool HasSource(this ChatType type) => type switch
+    public static bool HasSource(this ChatType type) => type switch
     {
         // Battle
         ChatType.Damage => true,
@@ -471,7 +471,7 @@ internal static class ChatTypeExt
         _ => false,
     };
 
-    internal static ChatType Parent(this ChatType type) => type switch
+    public static ChatType Parent(this ChatType type) => type switch
     {
         ChatType.Say => ChatType.Say,
         ChatType.GmSay => ChatType.Say,

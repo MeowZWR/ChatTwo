@@ -17,7 +17,7 @@ public sealed class SettingsWindow : Window
     private List<ISettingsTab> Tabs { get; }
     private int CurrentTab;
 
-    internal SettingsWindow(Plugin plugin) : base($"{Language.Settings_Title.Format(Plugin.PluginName)}###chat2-settings")
+    public SettingsWindow(Plugin plugin) : base($"{Language.Settings_Title.Format(Plugin.PluginName)}###chat2-settings")
     {
         Flags = ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse;
 
@@ -34,7 +34,7 @@ public sealed class SettingsWindow : Window
         Tabs =
         [
             new Display(Mutable),
-            new ChatLog(Plugin, Mutable),
+            new ChatLogConfig(Plugin, Mutable),
             new Emote(Plugin, Mutable),
             new Preview(Mutable),
             new Fonts(Mutable),

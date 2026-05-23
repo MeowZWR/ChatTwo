@@ -1,10 +1,12 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Numerics;
 using ChatTwo.Http;
 using ChatTwo.Ipc;
 using ChatTwo.Resources;
 using ChatTwo.Ui;
+using ChatTwo.Ui.ChatLog;
 using ChatTwo.Util;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Game.ClientState.Conditions;
@@ -49,32 +51,34 @@ public sealed class Plugin : IDalamudPlugin
 
     public readonly WindowSystem WindowSystem = new(PluginName);
     public SettingsWindow SettingsWindow { get; }
-    public ChatLogWindow ChatLogWindow { get; }
+    public ChatLog ChatLog { get; }
     public DbViewer DbViewer { get; }
     public InputPreview InputPreview { get; }
     public CommandHelpWindow CommandHelpWindow { get; }
     public SeStringDebugger SeStringDebugger { get; }
     public DebuggerWindow DebuggerWindow { get; }
 
-    internal Commands Commands { get; }
-    internal GameFunctions.GameFunctions Functions { get; }
-    internal MessageManager MessageManager { get; }
-    internal IpcManager Ipc { get; }
-    internal ExtraChat ExtraChat { get; }
+    public Commands Commands { get; }
+    public GameFunctions.GameFunctions Functions { get; }
+    public MessageManager MessageManager { get; }
+    public IpcManager Ipc { get; }
+    public ExtraChat ExtraChat { get; }
     internal Ipc.MareChat? MareChat { get; }
-    internal TypingIpc TypingIpc { get; }
-    internal FontManager FontManager { get; }
+    public TypingIpc TypingIpc { get; }
+    public FontManager FontManager { get; }
 
     public readonly ServerCore ServerCore;
 
-    internal int DeferredSaveFrames = -1;
+    public int DeferredSaveFrames = -1;
 
-    internal DateTime GameStarted { get; }
+    public DateTime GameStarted { get; }
+
+    public Vector4 DefaultText = Vector4.Zero;
 
     // Tab management needs to happen outside the chatlog window class for access reasons
-    internal int LastTab { get; set; }
-    internal int? WantedTab { get; set; }
-    internal Tab CurrentTab
+    public int LastTab { get; set; }
+    public int? WantedTab { get; set; }
+    public Tab CurrentTab
     {
         get
         {
@@ -147,7 +151,7 @@ public sealed class Plugin : IDalamudPlugin
 
             FileDialogManager = new FileDialogManager();
 
-            // Function call this in its ctor if the player is already logged in
+            // This is called by followup functions if the player is already logged in
             ServerCore = new ServerCore(this);
 
             Commands = new Commands();
@@ -160,15 +164,15 @@ public sealed class Plugin : IDalamudPlugin
 
             MessageManager = new MessageManager(this); // Does it require UI?
 
-            ChatLogWindow = new ChatLogWindow(this);
+            ChatLog = new ChatLog(this);
             SettingsWindow = new SettingsWindow(this);
             DbViewer = new DbViewer(this);
-            InputPreview = new InputPreview(ChatLogWindow);
-            CommandHelpWindow = new CommandHelpWindow(ChatLogWindow);
+            InputPreview = new InputPreview(ChatLog.InputHandler);
+            CommandHelpWindow = new CommandHelpWindow(ChatLog);
             SeStringDebugger = new SeStringDebugger(this);
             DebuggerWindow = new DebuggerWindow(this);
 
-            WindowSystem.AddWindow(ChatLogWindow);
+            WindowSystem.AddWindow(ChatLog);
             WindowSystem.AddWindow(SettingsWindow);
             WindowSystem.AddWindow(DbViewer);
             WindowSystem.AddWindow(InputPreview);
@@ -232,7 +236,7 @@ public sealed class Plugin : IDalamudPlugin
         GameFunctions.GameFunctions.SetChatInteractable(true);
 
         WindowSystem?.RemoveAllWindows();
-        ChatLogWindow?.Dispose();
+        ChatLog?.Dispose();
         DbViewer?.Dispose();
         InputPreview?.Dispose();
         SettingsWindow?.Dispose();
@@ -253,24 +257,24 @@ public sealed class Plugin : IDalamudPlugin
 
     private void Draw()
     {
-        ChatLogWindow.BeginFrame();
+        ChatLog.BeginFrame();
 
         if (Config.HideInLoadingScreens && Condition[ConditionFlag.BetweenAreas])
         {
-            ChatLogWindow.FinalizeFrame();
+            ChatLog.FinalizeFrame();
             TypingIpc.Update();
             return;
         }
 
-        ChatLogWindow.HideStateCheck();
+        ChatLog.IsHidden = HideStateHelper.HideStateCheck(ChatLog, Config.HideInBattle, Config.HideDuringCutscenes, Config.HideWhenNotLoggedIn, ChatLog.InputHandler.Activate);
 
         Interface.UiBuilder.DisableUserUiHide = !Config.HideWhenUiHidden;
-        ChatLogWindow.DefaultText = ImGui.GetStyle().Colors[(int) ImGuiCol.Text];
+        DefaultText = ImGui.GetStyle().Colors[(int)ImGuiCol.Text];
 
         using ((Config.FontsEnabled ? FontManager.RegularFont : FontManager.Axis).Push())
             WindowSystem.Draw();
 
-        ChatLogWindow.FinalizeFrame();
+        ChatLog.FinalizeFrame();
         TypingIpc.Update();
 
         FileDialogManager.Draw();
@@ -302,7 +306,7 @@ public sealed class Plugin : IDalamudPlugin
         "ChatLogPanel_0",
         "ChatLogPanel_1",
         "ChatLogPanel_2",
-        "ChatLogPanel_3"
+        "ChatLogPanel_3",
     ];
 
     private void FrameworkUpdate(IFramework framework)

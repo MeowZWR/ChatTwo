@@ -2,15 +2,15 @@ using ChatTwo.Resources;
 
 namespace ChatTwo.Code;
 
-internal static class ChatSourceExt
+public static class ChatSourceExt
 {
-    internal const ChatSource All =
+    public const ChatSource All =
         ChatSource.LocalPlayer | ChatSource.PartyMember | ChatSource.AllianceMember |
         ChatSource.OtherPlayer | ChatSource.EngagedEnemy | ChatSource.UnengagedEnemy |
         ChatSource.FriendlyNpc | ChatSource.PetOrCompanion | ChatSource.PetOrCompanionParty |
         ChatSource.PetOrCompanionAlliance | ChatSource.PetOrCompanionOther;
 
-    internal static string Name(this ChatSource source) => source switch
+    public static string Name(this ChatSource source) => source switch
     {
         ChatSource.LocalPlayer => Language.ChatSource_Self,
         ChatSource.PartyMember => Language.ChatSource_PartyMember,

@@ -1405,8 +1405,8 @@
   <data name="Webinterface_UsageNotice" xml:space="preserve">
         <value>Avviso Di Utilizzo</value>
     </data>
-  <data name="Options_Help_SenderMessages" xml:space="preserve">
-        <value>This disables the channel selection and shows all messages coming from the target.</value>
+  <data name="Options_Help_SenderMessagesV2" xml:space="preserve">
+        <value>Shows all messages coming from the target.</value>
     </data>
   <data name="Options_Header_Target" xml:space="preserve">
         <value>Target</value>
@@ -1465,5 +1465,14 @@ Your old database can still be recovered, please contact the plugin author for h
     </data>
   <data name="ChatExport_Initial" xml:space="preserve">
         <value>Loading logs ...</value>
+    </data>
+  <data name="Options_Tabs_SupportInput" xml:space="preserve">
+        <value>Show Input Area</value>
+    </data>
+  <data name="Options_Tabs_TellTabChannelSelection" xml:space="preserve">
+        <value>Channel selection is disabled for tell tabs.</value>
+    </data>
+  <data name="Options_Tab_SetTarget" xml:space="preserve">
+        <value>Set to target</value>
     </data>
 </root>

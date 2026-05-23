@@ -5,13 +5,13 @@ using Dalamud.Interface.Utility.Raii;
 
 namespace ChatTwo.Ui.SettingsTabs;
 
-internal sealed class Preview : ISettingsTab
+public sealed class Preview : ISettingsTab
 {
     private Configuration Mutable { get; }
 
     public string Name => $"{Language.Options_Preview_Tab}###tabs-preview";
 
-    internal Preview(Configuration mutable)
+    public Preview(Configuration mutable)
     {
         Mutable = mutable;
     }

@@ -7,7 +7,7 @@ using Dalamud.Plugin.Ipc;
 
 namespace ChatTwo;
 
-internal sealed class IpcManager : IDisposable
+public sealed class IpcManager : IDisposable
 {
     private Plugin PluginRef { get; }
     private ICallGateProvider<string> RegisterGate { get; }
@@ -18,7 +18,7 @@ internal sealed class IpcManager : IDisposable
     private ICallGateProvider<int, string, string, DateTime, object?> MarePushGate { get; }
     private ICallGateProvider<object?> MareChannelsUpdatedGate { get; }
 
-    internal List<string> Registered { get; } = [];
+    public List<string> Registered { get; } = [];
 
     public IpcManager(Plugin plugin)
     {
@@ -48,7 +48,7 @@ internal sealed class IpcManager : IDisposable
         AvailableGate.SendMessage();
     }
 
-    internal void Invoke(string id, PlayerPayload? sender, ulong contentId, Payload? payload, SeString? senderString, SeString? content)
+    public void Invoke(string id, PlayerPayload? sender, ulong contentId, Payload? payload, SeString? senderString, SeString? content)
     {
         InvokeGate.SendMessage(id, sender, contentId, payload, senderString, content);
     }
@@ -102,9 +102,9 @@ internal sealed class IpcManager : IDisposable
             var mareLink = PluginRef.MareChat?.OpenChatLinkPayload;
             var senderChunks = new List<Chunk>
             {
-                new TextChunk(ChunkSource.Sender, mareLink, chanLabel) { FallbackColour = chatType },
-                new TextChunk(ChunkSource.Sender, null, senderLabel) { FallbackColour = chatType },
-                new TextChunk(ChunkSource.Sender, null, " ") { FallbackColour = chatType },
+                new TextChunk(ChunkSource.Sender, mareLink, chanLabel) { FallbackColor = chatType },
+                new TextChunk(ChunkSource.Sender, null, senderLabel) { FallbackColor = chatType },
+                new TextChunk(ChunkSource.Sender, null, " ") { FallbackColor = chatType },
             };
             var contentChunks = BuildMareContentChunks(content, chatType);
 
@@ -183,7 +183,7 @@ internal sealed class IpcManager : IDisposable
         {
             return new List<Chunk>
             {
-                new TextChunk(ChunkSource.Content, null, content) { FallbackColour = chatType }
+                new TextChunk(ChunkSource.Content, null, content) { FallbackColor = chatType }
             };
         }
 

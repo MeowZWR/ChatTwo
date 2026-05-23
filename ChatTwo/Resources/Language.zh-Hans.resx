@@ -1148,7 +1148,7 @@
         <value>禁用此频道的输入</value>
     </data>
   <data name="Options_Tabs_SenderMessages" xml:space="preserve">
-        <value>Show all messages sent by target</value>
+        <value>显示目标发送的所有消息</value>
     </data>
   <data name="ChatLog_DisabledInput" xml:space="preserve">
         <value>此选项卡已禁用输入</value>
@@ -1405,8 +1405,8 @@
   <data name="Webinterface_UsageNotice" xml:space="preserve">
         <value>使用须知</value>
     </data>
-  <data name="Options_Help_SenderMessages" xml:space="preserve">
-        <value>禁用频道选择，显示目标的所有消息。</value>
+  <data name="Options_Help_SenderMessagesV2" xml:space="preserve">
+        <value>Shows all messages coming from the target.</value>
     </data>
   <data name="Options_Header_Target" xml:space="preserve">
         <value>选中</value>
@@ -1427,43 +1427,52 @@
         <value>选中</value>
     </data>
   <data name="ChannelSelector_Unselect" xml:space="preserve">
-        <value>Unselect all</value>
+        <value>取消全选</value>
     </data>
   <data name="ChannelSelector_Select" xml:space="preserve">
-        <value>Select all</value>
+        <value>全选</value>
     </data>
   <data name="Database_Migration_Error_Title" xml:space="preserve">
-        <value>Chat2 Database Migration Error</value>
+        <value>Chat2 数据库迁移错误</value>
     </data>
   <data name="Database_Migration_Error_Desc" xml:space="preserve">
-        <value>Database migration has failed, a new database will be created.
-Your old database can still be recovered, please contact the plugin author for help.</value>
+        <value>数据库迁移失败，已创建新数据库。
+旧数据仍可恢复，请联系插件作者获取帮助。</value>
     </data>
   <data name="DbViewer_Date_Reset_Tooltip" xml:space="preserve">
-        <value>Reset date selection.</value>
+        <value>重置日期选择。</value>
     </data>
   <data name="Folder_Export_Location_Tooltip" xml:space="preserve">
-        <value>Pick a folder location for export.</value>
+        <value>选择导出文件夹位置。</value>
     </data>
   <data name="Folder_Selection_Header" xml:space="preserve">
-        <value>Pick an export location</value>
+        <value>请选择导出目录</value>
     </data>
   <data name="Export_Txt_Tooltip" xml:space="preserve">
-        <value>Export the message history to a text file.</value>
+        <value>导出聊天记录为文本文件。</value>
     </data>
   <data name="Export_Json_Tooltip" xml:space="preserve">
-        <value>Export the message history to a json file.</value>
+        <value>导出聊天记录为 json 文件。</value>
     </data>
   <data name="Page_ArrowLeft_Tooltip" xml:space="preserve">
-        <value>Previous page</value>
+        <value>上一页</value>
     </data>
   <data name="Page_ArrowRight_Tooltip" xml:space="preserve">
-        <value>Next page</value>
+        <value>下一页</value>
     </data>
   <data name="DatePicker_Tooltip" xml:space="preserve">
-        <value>Open date picker</value>
+        <value>打开日期选择器</value>
     </data>
   <data name="ChatExport_Initial" xml:space="preserve">
-        <value>Loading logs ...</value>
+        <value>正在加载日志...</value>
+    </data>
+  <data name="Options_Tabs_SupportInput" xml:space="preserve">
+        <value>Show Input Area</value>
+    </data>
+  <data name="Options_Tabs_TellTabChannelSelection" xml:space="preserve">
+        <value>Channel selection is disabled for tell tabs.</value>
+    </data>
+  <data name="Options_Tab_SetTarget" xml:space="preserve">
+        <value>Set to target</value>
     </data>
 </root>

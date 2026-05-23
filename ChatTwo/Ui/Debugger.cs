@@ -12,12 +12,12 @@ namespace ChatTwo.Ui;
 public class DebuggerWindow : Window
 {
     private readonly Plugin Plugin;
-    private readonly ChatLogWindow ChatLogWindow;
+    private readonly ChatLog.ChatLog ChatLogWindow;
 
     public DebuggerWindow(Plugin plugin) : base("Debugger###chat2-debugger")
     {
         Plugin = plugin;
-        ChatLogWindow = plugin.ChatLogWindow;
+        ChatLogWindow = plugin.ChatLog;
 
         SizeConstraints = new WindowSizeConstraints
         {
@@ -41,16 +41,16 @@ public class DebuggerWindow : Window
     public override unsafe void Draw()
     {
         var agent = (nint) AgentItemDetail.Instance();
-        ImGui.TextUnformatted($"Current Cursor Pos: {ChatLogWindow.CursorPos}");
+        ImGui.TextUnformatted($"Current Cursor Pos: {ChatLogWindow.InputHandler.CursorPos}");
         if (ImGui.Selectable($"Agent Address: {agent:X}"))
             ImGui.SetClipboardText(agent.ToString("X"));
 
         ImGuiHelpers.ScaledDummy(5.0f);
 
-        ImGui.TextUnformatted($"Handle Tooltips: {ChatLogWindow.PayloadHandler.HandleTooltips}");
-        ImGui.TextUnformatted($"Hovered Item: {ChatLogWindow.PayloadHandler.HoveredItem}");
-        ImGui.TextUnformatted($"Hover Counter: {ChatLogWindow.PayloadHandler.HoverCounter}");
-        ImGui.TextUnformatted($"Last Hover Counter: {ChatLogWindow.PayloadHandler.LastHoverCounter}");
+        ImGui.TextUnformatted($"Handle Tooltips: {ChatLogWindow.InputHandler.PayloadHandler.HandleTooltips}");
+        ImGui.TextUnformatted($"Hovered Item: {ChatLogWindow.InputHandler.PayloadHandler.HoveredItem}");
+        ImGui.TextUnformatted($"Hover Counter: {ChatLogWindow.InputHandler.PayloadHandler.HoverCounter}");
+        ImGui.TextUnformatted($"Last Hover Counter: {ChatLogWindow.InputHandler.PayloadHandler.LastHoverCounter}");
 
         ImGuiHelpers.ScaledDummy(5.0f);
 

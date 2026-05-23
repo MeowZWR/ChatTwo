@@ -17,9 +17,9 @@ using Encoding = System.Text.Encoding;
 
 namespace ChatTwo;
 
-internal static class DbExtensions
+public static class DbExtensions
 {
-    internal static void Execute(this DbConnection conn, string sql)
+    public static void Execute(this DbConnection conn, string sql)
     {
         using var cmd = conn.CreateCommand();
         cmd.CommandText = sql;
@@ -27,7 +27,7 @@ internal static class DbExtensions
     }
 }
 
-internal enum PayloadMessagePackType : byte
+public enum PayloadMessagePackType : byte
 {
     Achievement,
     PartyFinder,
@@ -113,7 +113,7 @@ public class SeStringMessagePackFormatter : IMessagePackFormatter<SeString?>
     }
 }
 
-internal class MessageStore : IDisposable
+public class MessageStore : IDisposable
 {
     private const int MessageQueryLimit = 10_000;
 
@@ -122,10 +122,10 @@ internal class MessageStore : IDisposable
 
     private SqliteConnection Connection { get; set; }
 
-    internal static readonly MessagePackSerializerOptions MsgPackOptions = MessagePackSerializerOptions.Standard
+    public static readonly MessagePackSerializerOptions MsgPackOptions = MessagePackSerializerOptions.Standard
         .WithResolver(CompositeResolver.Create([new PayloadMessagePackFormatter(), new SeStringMessagePackFormatter()], [StandardResolver.Instance]));
 
-    internal MessageStore(Plugin plugin, string dbPath)
+    public MessageStore(Plugin plugin, string dbPath)
     {
         Plugin = plugin;
         DbPath = dbPath;
@@ -347,13 +347,13 @@ internal class MessageStore : IDisposable
         cmd.ExecuteNonQuery();
     }
 
-    internal void ClearMessages()
+    public void ClearMessages()
     {
         Connection.Execute("DELETE FROM messages;");
         PerformMaintenance();
     }
 
-    internal void PerformMaintenance()
+    public void PerformMaintenance()
     {
         Connection.Execute(@"
             VACUUM;
@@ -363,17 +363,17 @@ internal class MessageStore : IDisposable
     }
 
     private string LogPath => DbPath + "-wal";
-    internal long DatabaseSize() => !File.Exists(DbPath) ? 0 : new FileInfo(DbPath).Length;
-    internal long DatabaseLogSize() => !File.Exists(LogPath) ? 0 : new FileInfo(LogPath).Length;
+    public long DatabaseSize() => !File.Exists(DbPath) ? 0 : new FileInfo(DbPath).Length;
+    public long DatabaseLogSize() => !File.Exists(LogPath) ? 0 : new FileInfo(LogPath).Length;
 
-    internal int MessageCount()
+    public int MessageCount()
     {
         using var cmd = Connection.CreateCommand();
         cmd.CommandText = "SELECT COUNT(*) FROM messages;";
         return Convert.ToInt32(cmd.ExecuteScalar());
     }
 
-    internal void UpsertMessage(Message message)
+    public void UpsertMessage(Message message)
     {
         using var cmd = Connection.CreateCommand();
         cmd.CommandText = @"
@@ -443,7 +443,7 @@ internal class MessageStore : IDisposable
     /// <param name="receiver">The receiver content ID to filter by. If null, no filtering is performed.</param>
     /// <param name="since">Only show messages since this date. If null, no filtering is performed.</param>
     /// <param name="count">The amount to return. Defaults to 10,000.</param>
-    internal MessageEnumerator GetMostRecentMessages(ulong? receiver = null, DateTimeOffset? since = null, int count = MessageQueryLimit)
+    public MessageEnumerator GetMostRecentMessages(ulong? receiver = null, DateTimeOffset? since = null, int count = MessageQueryLimit)
     {
         List<string> whereClauses = ["deleted = false"];
         if (receiver != null)
@@ -494,7 +494,7 @@ internal class MessageStore : IDisposable
     /// <summary>
     /// Marks a message as deleted so it won't get returned in queries.
     /// </summary>
-    internal void DeleteMessage(Guid id)
+    public void DeleteMessage(Guid id)
     {
         using var cmd = Connection.CreateCommand();
         cmd.CommandText = "UPDATE messages SET Deleted = true WHERE Id = $Id;";
@@ -502,7 +502,7 @@ internal class MessageStore : IDisposable
         cmd.ExecuteNonQuery();
     }
 
-    internal long CountDateRange(DateTime after, DateTime before, IEnumerable<int> channels, ulong? receiver = null)
+    public long CountDateRange(DateTime after, DateTime before, IEnumerable<byte> channels, ulong? receiver = null)
     {
         List<string> whereClauses = ["deleted = false"];
         if (receiver != null)
@@ -531,7 +531,7 @@ internal class MessageStore : IDisposable
         return (long) cmd.ExecuteScalar()!;
     }
 
-    internal MessageEnumerator GetDateRange(DateTime after, DateTime before, IEnumerable<int> channels, ulong? receiver = null)
+    public MessageEnumerator GetDateRange(DateTime after, DateTime before, IEnumerable<byte> channels, ulong? receiver = null)
     {
         List<string> whereClauses = ["deleted = false"];
         if (receiver != null)
@@ -572,7 +572,7 @@ internal class MessageStore : IDisposable
         return new MessageEnumerator(cmd.ExecuteReader());
     }
 
-    internal MessageEnumerator GetPagedDateRange(DateTime after, DateTime before, IEnumerable<int> channels, ulong? receiver = null, int page = 0)
+    public MessageEnumerator GetPagedDateRange(DateTime after, DateTime before, IEnumerable<byte> channels, ulong? receiver = null, int page = 0)
     {
         List<string> whereClauses = ["deleted = false"];
         if (receiver != null)
@@ -613,13 +613,13 @@ internal class MessageStore : IDisposable
         cmd.Parameters.AddWithValue("$After", ((DateTimeOffset) after).ToUnixTimeMilliseconds());
         cmd.Parameters.AddWithValue("$Before", ((DateTimeOffset) before).ToUnixTimeMilliseconds());
         cmd.Parameters.AddWithValue("$Offset", DbViewer.RowPerPage * page);
-        cmd.Parameters.AddWithValue("OffsetCount", DbViewer.RowPerPage);
+        cmd.Parameters.AddWithValue("$OffsetCount", DbViewer.RowPerPage);
 
         return new MessageEnumerator(cmd.ExecuteReader());
     }
 }
 
-internal class MessageEnumerator(DbDataReader reader) : IEnumerable<Message>, IDisposable, IAsyncDisposable
+public class MessageEnumerator(DbDataReader reader) : IEnumerable<Message>, IDisposable, IAsyncDisposable
 {
     private const int MaxErrorLogs = 10;
 

@@ -13,7 +13,7 @@ public class Fonts : ISettingsTab
 
     public string Name => Language.Options_Fonts_Tab + "###tabs-fonts";
 
-    internal Fonts(Configuration mutable)
+    public Fonts(Configuration mutable)
     {
         Mutable = mutable;
     }

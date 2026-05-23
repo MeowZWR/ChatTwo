@@ -4,6 +4,7 @@ using ChatTwo.Code;
 using ChatTwo;
 using ChatTwo.GameFunctions.Types;
 using ChatTwo.Resources;
+using ChatTwo.Ui.Handler;
 using Dalamud.Game.ClientState.Keys;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Interface;
@@ -17,7 +18,7 @@ using Dalamud.Bindings.ImGui;
 
 namespace ChatTwo.Util;
 
-internal static class ImGuiUtil
+public static class ImGuiUtil
 {
     private static Plugin Plugin = null!;
 
@@ -37,7 +38,7 @@ internal static class ImGuiUtil
     private static Payload? LastLink;
     private static readonly List<(Vector2, Vector2)> PayloadBounds = [];
 
-    internal static void PostPayload(Chunk chunk, PayloadHandler? handler)
+    public static void PostPayload(Chunk chunk, PayloadHandler? handler)
     {
         var payload = chunk.Link;
         if (payload != null && ImGui.IsItemHovered())
@@ -59,7 +60,7 @@ internal static class ImGuiUtil
                 handler.Click(chunk, payload, button);
     }
 
-    internal static unsafe void WrapText(string csText, Chunk chunk, PayloadHandler? handler, Vector4 defaultText, float lineWidth)
+    public static unsafe void WrapText(string csText, Chunk chunk, PayloadHandler? handler, Vector4 defaultText, float lineWidth)
     {
         void Text(byte* text, byte* textEnd)
         {
@@ -178,7 +179,7 @@ internal static class ImGuiUtil
         return textEnd;
     }
 
-    internal static bool IconButton(FontAwesomeIcon icon, string? id = null, string? tooltip = null, int width = 0)
+    public static bool IconButton(FontAwesomeIcon icon, string? id = null, string? tooltip = null)
     {
         var label = icon.ToIconString();
         if (id != null)
@@ -186,13 +187,7 @@ internal static class ImGuiUtil
 
         bool ret;
         using (Plugin.FontManager.FontAwesome.Push())
-        {
-            var size = Vector2.Zero;
-            if (width > 0)
-                size.X = width - 2 * ImGui.GetStyle().CellPadding.X;
-
-            ret = ImGui.Button(label, size);
-        }
+            ret = ImGui.Button(label);
 
         if (!string.IsNullOrEmpty(tooltip) && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
             Tooltip(tooltip);
@@ -200,7 +195,7 @@ internal static class ImGuiUtil
         return ret;
     }
 
-    internal static bool OptionCheckbox(ref bool value, string label, string? description = null)
+    public static bool OptionCheckbox(ref bool value, string label, string? description = null)
     {
         var ret = ImGui.Checkbox(label, ref value);
         if (!string.IsNullOrEmpty(description))
@@ -209,14 +204,14 @@ internal static class ImGuiUtil
         return ret;
     }
 
-    internal static void HelpText(string text)
+    public static void HelpText(string text)
     {
         using (ImRaii.TextWrapPos(0.0f))
         using (ImRaii.PushColor(ImGuiCol.Text, ImGui.GetStyle().Colors[(int) ImGuiCol.TextDisabled]))
             ImGui.TextUnformatted(text);
     }
 
-    internal static void WarningText(string text, bool wrap = true)
+    public static void WarningText(string text, bool wrap = true)
     {
         var style = StyleModel.GetConfiguredStyle() ?? StyleModel.GetFromCurrent();
         var dalamudOrange = style.BuiltInColors?.DalamudOrange;
@@ -226,21 +221,21 @@ internal static class ImGuiUtil
             ImGui.TextUnformatted(text);
     }
 
-    internal static ImRaii.ComboDisposable BeginComboVertical(string label, string previewValue, ImGuiComboFlags flags = ImGuiComboFlags.None)
+    public static ImRaii.ComboDisposable BeginComboVertical(string label, string previewValue, ImGuiComboFlags flags = ImGuiComboFlags.None)
     {
         ImGui.TextUnformatted(label);
         ImGui.SetNextItemWidth(-1);
         return ImRaii.Combo($"##{label}", previewValue, flags);
     }
 
-    internal static bool DragFloatVertical(string label, ref float value, float vSpeed = 1.0f, float vMin = float.MinValue, float vMax = float.MaxValue, string? format = null, ImGuiSliderFlags flags = ImGuiSliderFlags.None)
+    public static bool DragFloatVertical(string label, ref float value, float vSpeed = 1.0f, float vMin = float.MinValue, float vMax = float.MaxValue, string? format = null, ImGuiSliderFlags flags = ImGuiSliderFlags.None)
     {
         ImGui.TextUnformatted(label);
         ImGui.SetNextItemWidth(-1);
         return ImGui.DragFloat($"##{label}", ref value, vSpeed, vMin, vMax, format, flags);
     }
 
-    internal static bool DragFloatVertical(string label, string description, ref float value, float vSpeed = 1.0f, float vMin = float.MinValue, float vMax = float.MaxValue, string? format = null, ImGuiSliderFlags flags = ImGuiSliderFlags.None)
+    public static bool DragFloatVertical(string label, string description, ref float value, float vSpeed = 1.0f, float vMin = float.MinValue, float vMax = float.MaxValue, string? format = null, ImGuiSliderFlags flags = ImGuiSliderFlags.None)
     {
         ImGui.TextUnformatted(label);
         ImGui.SetNextItemWidth(-1);
@@ -250,7 +245,7 @@ internal static class ImGuiUtil
         return r;
     }
 
-    internal static bool InputIntVertical(string label, string description, ref int value, int step = 1, int stepFast = 100, ImGuiInputTextFlags flags = ImGuiInputTextFlags.None)
+    public static bool InputIntVertical(string label, string description, ref int value, int step = 1, int stepFast = 100, ImGuiInputTextFlags flags = ImGuiInputTextFlags.None)
     {
         ImGui.TextUnformatted(label);
         ImGui.SetNextItemWidth(-1);
@@ -260,7 +255,7 @@ internal static class ImGuiUtil
         return r;
     }
 
-    internal static void Tooltip(string tooltip)
+    public static void Tooltip(string tooltip)
     {
         using (ImRaii.Tooltip())
         using (ImRaii.TextWrapPos(ImGui.GetFontSize() * 35.0f))
@@ -342,7 +337,7 @@ internal static class ImGuiUtil
             return ImGuiComponents.IconButton(id, icon);
     }
 
-    internal static bool CtrlShiftButton(string label, string tooltip = "")
+    public static bool CtrlShiftButton(string label, string tooltip = "")
     {
         var ctrlShiftHeld = ImGui.GetIO() is { KeyCtrl: true, KeyShift: true };
 
@@ -356,7 +351,7 @@ internal static class ImGuiUtil
         return ret;
     }
 
-    internal static void KeybindInput(string id, ref ConfigKeyBind? keybind)
+    public static void KeybindInput(string id, ref ConfigKeyBind? keybind)
     {
         var idUint = ImGui.GetID(id);
 
@@ -460,7 +455,7 @@ internal static class ImGuiUtil
         ImGui.TextUnformatted(text);
     }
 
-    internal static bool TryToImGui(this VirtualKey key, out ImGuiKey result)
+    public static bool TryToImGui(this VirtualKey key, out ImGuiKey result)
     {
         result = key switch
         {
@@ -687,5 +682,11 @@ internal static class ImGuiUtil
             else
                 extraChatChannels.Remove(id);
         }
+    }
+
+    public static Vector2 CalcIconButtonSize()
+    {
+        using (Plugin.FontManager.FontAwesome.Push())
+            return ImGui.CalcTextSize(FontAwesomeIcon.Cog.ToIconString()) + ImGui.GetStyle().FramePadding * 2;
     }
 }

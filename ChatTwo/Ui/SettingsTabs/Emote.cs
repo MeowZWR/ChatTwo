@@ -8,7 +8,7 @@ using Dalamud.Bindings.ImGui;
 
 namespace ChatTwo.Ui.SettingsTabs;
 
-internal sealed class Emote : ISettingsTab
+public sealed class Emote : ISettingsTab
 {
     private readonly Plugin Plugin;
     private Configuration Mutable { get; }
@@ -17,7 +17,7 @@ internal sealed class Emote : ISettingsTab
 
     private static SearchSelector.SelectorPopupOptions? WordPopupOptions;
 
-    internal Emote(Plugin plugin, Configuration mutable)
+    public Emote(Plugin plugin, Configuration mutable)
     {
         Plugin = plugin;
         Mutable = mutable;

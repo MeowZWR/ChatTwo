@@ -14,7 +14,7 @@ using static Pidgin.Parser<char>;
 
 namespace ChatTwo.Util;
 
-internal static class AutoTranslate
+public static class AutoTranslate
 {
     private static readonly Dictionary<ClientLanguage, List<AutoTranslateEntry>> Entries = new();
     private static readonly HashSet<(uint, uint)> ValidEntries = [];
@@ -56,7 +56,7 @@ internal static class AutoTranslate
     ///
     /// This spawns a new thread.
     /// </summary>
-    internal static void PreloadCache()
+    public static void PreloadCache()
     {
         new Thread(() =>
         {
@@ -175,7 +175,7 @@ internal static class AutoTranslate
         return list;
     }
 
-    internal static List<AutoTranslateEntry> Matching(string prefix, bool sort)
+    public static List<AutoTranslateEntry> Matching(string prefix, bool sort)
     {
         var wholeMatches = new List<AutoTranslateEntry>();
         var prefixMatches = new List<AutoTranslateEntry>();
@@ -222,7 +222,7 @@ internal static class AutoTranslate
     [DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl)]
     private static extern int memcmp(byte[] b1, byte[] b2, nuint count);
 
-    internal static void ReplaceWithPayload(ref byte[] bytes)
+    public static void ReplaceWithPayload(ref byte[] bytes)
     {
         var search = "<at:"u8.ToArray();
         if (bytes.Length <= search.Length)
@@ -316,30 +316,30 @@ internal static class AutoTranslate
     }
 }
 
-internal interface ISelectorPart { }
+public interface ISelectorPart { }
 
-internal class SingleRow(uint row) : ISelectorPart
+public class SingleRow(uint row) : ISelectorPart
 {
     public uint Row { get; } = row;
 }
 
-internal class IndexRange(uint start, uint end) : ISelectorPart
+public class IndexRange(uint start, uint end) : ISelectorPart
 {
     public uint Start { get; } = start;
     public uint End { get; } = end;
 }
 
-internal class NounMarker : ISelectorPart { }
+public class NounMarker : ISelectorPart { }
 
-internal class ColumnSpecifier(uint column) : ISelectorPart
+public class ColumnSpecifier(uint column) : ISelectorPart
 {
     public uint Column { get; } = column;
 }
 
-internal class AutoTranslateEntry(uint group, uint row, string str, string title)
+public class AutoTranslateEntry(uint group, uint row, string str, string title)
 {
-    internal uint Group { get; } = group;
-    internal uint Row { get; } = row;
-    internal string Text { get; } = str;
-    internal string Title { get; } = title;
+    public uint Group { get; } = group;
+    public uint Row { get; } = row;
+    public string Text { get; } = str;
+    public string Title { get; } = title;
 }

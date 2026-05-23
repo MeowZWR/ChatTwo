@@ -8,9 +8,9 @@ using PayloadType = Dalamud.Game.Text.SeStringHandling.PayloadType;
 
 namespace ChatTwo.Util;
 
-internal static class ChunkUtil
+public static class ChunkUtil
 {
-    // internal static IEnumerable<Chunk> ToChunks(ReadOnlySeString msg, ChunkSource source, ChatType? defaultColour)
+    // public static IEnumerable<Chunk> ToChunks(ReadOnlySeString msg, ChunkSource source, ChatType? defaultColour)
     // {
     //     var chunks = new List<Chunk>();
     //
@@ -248,7 +248,7 @@ internal static class ChunkUtil
     //     return chunks;
     // }
 
-    internal static IEnumerable<Chunk> ToChunks(SeString msg, ChunkSource source, ChatType? defaultColour)
+    public static IEnumerable<Chunk> ToChunks(SeString msg, ChunkSource source, ChatType? defaultColour)
     {
         var chunks = new List<Chunk>();
 
@@ -261,10 +261,11 @@ internal static class ChunkUtil
         {
             chunks.Add(new TextChunk(source, link, text)
             {
-                FallbackColour = defaultColour,
+                FallbackColor = defaultColour,
                 Foreground = foreground.Count > 0 ? foreground.Peek() : null,
                 Glow = glow.Count > 0 ? glow.Peek() : null,
                 Italic = italic,
+                Color = ColourUtil.RgbaToVector4(foreground.Count > 0 ? foreground.Peek() : null),
             });
         }
 
@@ -385,7 +386,7 @@ internal static class ChunkUtil
         return chunks;
     }
 
-    internal static string ToRawString(List<Chunk> chunks)
+    public static string ToRawString(List<Chunk> chunks)
     {
         if (chunks.Count == 0)
             return string.Empty;
@@ -398,7 +399,7 @@ internal static class ChunkUtil
         return builder.ToString();
     }
 
-    internal static readonly RawPayload PeriodicRecruitmentLink = new([0x02, 0x27, 0x07, 0x08, 0x01, 0x01, 0x01, 0xFF, 0x01, 0x03]);
+    public static readonly RawPayload PeriodicRecruitmentLink = new([0x02, 0x27, 0x07, 0x08, 0x01, 0x01, 0x01, 0xFF, 0x01, 0x03]);
 
     private static uint GetInteger(BinaryReader input)
     {

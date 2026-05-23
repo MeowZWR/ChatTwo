@@ -5,7 +5,7 @@ namespace ChatTwo.Ipc;
 
 using ChatInputState = (bool InputVisible, bool InputFocused, bool HasText, bool IsTyping, int TextLength, ChatType ChannelType);
 
-internal sealed class TypingIpc : IDisposable
+public sealed class TypingIpc : IDisposable
 {
     private Plugin Plugin { get; }
 
@@ -15,7 +15,7 @@ internal sealed class TypingIpc : IDisposable
     private ChatInputState LastState;
     private bool HasState;
 
-    internal TypingIpc(Plugin plugin)
+    public TypingIpc(Plugin plugin)
     {
         Plugin = plugin;
 
@@ -27,24 +27,24 @@ internal sealed class TypingIpc : IDisposable
 
     private ChatInputState BuildState()
     {
-        var log = Plugin.ChatLogWindow;
+        var log = Plugin.ChatLog;
 
         var usedChannel = Plugin.CurrentTab.CurrentChannel;
         var inputChannel = usedChannel.UseTempChannel ? usedChannel.TempChannel : usedChannel.Channel;
         var channelType = inputChannel.ToChatType();
 
         return (InputVisible: !log.IsHidden,
-            log.InputFocused,
-            HasText: log.Chat.Length > 0,
-            IsTyping: log is { InputFocused: true, Chat.Length: > 0 },
-            TextLength: log.Chat.Length,
+            log.InputHandler.InputFocused,
+            HasText: log.InputHandler.ChatInput.Length > 0,
+            IsTyping: log.InputHandler is { InputFocused: true, ChatInput.Length: > 0 },
+            TextLength: log.InputHandler.ChatInput.Length,
             ChannelType: channelType);
     }
 
     private ChatInputState GetState()
         => BuildState();
 
-    internal void Update()
+    public void Update()
     {
         var state = BuildState();
         if (HasState && state.Equals(LastState))

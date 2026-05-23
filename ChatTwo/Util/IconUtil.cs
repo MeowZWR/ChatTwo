@@ -5,7 +5,7 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace ChatTwo.Util;
 
-// From Kizer: https://github.com/Soreepeong/Dalamud/blob/feature/log-wordwrap/Dalamud/Interface/Spannables/Internal/GfdFileView.cs
+// From Kizer: https://github.com/Soreepeong/Dalamud/blob/feature/log-wordwrap/Dalamud/Interface/Spannables/public/GfdFileView.cs
 public readonly unsafe ref struct GfdFileView
 {
     private readonly ReadOnlySpan<byte> Span;
@@ -137,7 +137,7 @@ public readonly unsafe ref struct GfdFileView
 
 
 
-internal static class IconUtil
+public static class IconUtil
 {
     private static byte[]? GfdFile;
     public static unsafe GfdFileView GfdFileView

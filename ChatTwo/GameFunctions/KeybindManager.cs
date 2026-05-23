@@ -12,15 +12,15 @@ using ModifierFlag = ChatTwo.GameFunctions.Types.ModifierFlag;
 
 namespace ChatTwo.GameFunctions;
 
-internal enum KeyboardSource {
+public enum KeyboardSource {
     Game,
-    ImGui
+    ImGui,
 }
 
-internal unsafe class KeybindManager : IDisposable {
+public unsafe class KeybindManager : IDisposable {
     private Plugin Plugin { get; }
 
-    internal bool DirectChat;
+    public bool DirectChat;
     private long LastRefresh;
 
     private bool VanillaTextInputHasFocus;
@@ -295,7 +295,7 @@ internal unsafe class KeybindManager : IDisposable {
         // VirtualKey.OEM_CLEAR,
     };
 
-    internal KeybindManager(Plugin plugin)
+    public KeybindManager(Plugin plugin)
     {
         Plugin = plugin;
         Plugin.GameInteropProvider.InitializeFromAttributes(this);
@@ -379,7 +379,7 @@ internal unsafe class KeybindManager : IDisposable {
 
     private void HandleKeybinds(IFramework _ ) => HandleKeybinds(KeyboardSource.Game);
 
-    internal void HandleKeybinds(KeyboardSource source, bool ignoreChatOpen = false, bool modifiersOnly = false)
+    public void HandleKeybinds(KeyboardSource source, bool ignoreChatOpen = false, bool modifiersOnly = false)
     {
         // Refresh current keybinds every 5s
         if (LastRefresh + 5 * 1000 < Environment.TickCount64)
@@ -414,13 +414,13 @@ internal unsafe class KeybindManager : IDisposable {
         if (ConfigKeybindPressed(source, Plugin.Config.ChatTabForward))
         {
             Plugin.KeyState[Plugin.Config.ChatTabForward!.Key] = false;
-            Plugin.ChatLogWindow.ChangeTabDelta(1);
+            Plugin.ChatLog.ChangeTabDelta(1);
             return;
         }
         if (ConfigKeybindPressed(source, Plugin.Config.ChatTabBackward))
         {
             Plugin.KeyState[Plugin.Config.ChatTabBackward!.Key] = false;
-            Plugin.ChatLogWindow.ChangeTabDelta(-1);
+            Plugin.ChatLog.ChangeTabDelta(-1);
             return;
         }
 
@@ -459,7 +459,7 @@ internal unsafe class KeybindManager : IDisposable {
             TellReason? reason = null;
             if (info.Channel == InputChannel.Tell)
                 reason = TellReason.Reply;
-            Plugin.ChatLogWindow.Activated(new ChatActivatedArgs(info) { TellReason = reason, });
+            Plugin.ChatLog.Activated(new ChatActivatedArgs(info) { TellReason = reason, });
         }
         catch (Exception ex)
         {

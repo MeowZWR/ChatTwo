@@ -1,4 +1,5 @@
-﻿using Dalamud.Interface;
+﻿using ChatTwo.Http;
+using Dalamud.Interface;
 using Dalamud.Interface.GameFonts;
 using Dalamud.Interface.ManagedFontAtlas;
 using Dalamud.Interface.Utility;
@@ -8,17 +9,17 @@ namespace ChatTwo;
 
 public class FontManager
 {
-    internal IFontHandle Axis { get; private set; } = null!;
-    internal IFontHandle AxisItalic { get; private set; } = null!;
+    public IFontHandle Axis = null!;
+    public IFontHandle AxisItalic = null!;
 
-    internal IFontHandle RegularFont { get; private set; } = null!;
-    internal IFontHandle RegularFontSmallSymbols { get; private set; } = null!;
-    internal IFontHandle? ItalicFont { get; private set; }
-    internal IFontHandle? ItalicFontSmallSymbols { get; private set; }
+    public IFontHandle RegularFont = null!;
+    public IFontHandle RegularFontSmallSymbols = null!;
+    public IFontHandle? ItalicFont;
+    public IFontHandle? ItalicFontSmallSymbols;
 
-    internal IFontHandle FontAwesome { get; private set; } = null!;
+    public IFontHandle FontAwesome = null!;
 
-    internal readonly byte[] GameSymFont;
+    public readonly byte[] GameSymFont;
 
     private ushort[] Ranges = null!;
     private ushort[] JpRange = null!;
@@ -39,7 +40,7 @@ public class FontManager
         }
         else
         {
-            GameSymFont = new HttpClient().GetAsync("https://img.finalfantasyxiv.com/lds/pc/global/fonts/FFXIV_Lodestone_SSF.ttf")
+            GameSymFont = ServerCore.HttpClient.GetAsync("https://img.finalfantasyxiv.com/lds/pc/global/fonts/FFXIV_Lodestone_SSF.ttf")
                 .Result
                 .Content
                 .ReadAsByteArrayAsync()
