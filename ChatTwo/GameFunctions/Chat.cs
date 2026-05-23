@@ -176,7 +176,7 @@ public sealed unsafe class Chat : IDisposable
 
                 try
                 {
-                    Plugin.ChatLog.Activated(new ChatActivatedArgs(new ChannelSwitchInfo(null)) { Input = input });
+                    Plugin.ChatLog?.Activated(new ChatActivatedArgs(new ChannelSwitchInfo(null)) { Input = input });
                 }
                 catch (Exception ex)
                 {
@@ -199,13 +199,13 @@ public sealed unsafe class Chat : IDisposable
         {
             // We already called this function once, so we skip the duplicated call
             // Also return the original value here so that vanilla chat receives all information
-            if (Plugin.ChatLog.TellSpecial)
+            if (Plugin.ChatLog?.TellSpecial == true)
             {
                 Plugin.Log.Information("Return early to prevent duplicated call...");
                 return ChatLogRefreshHook!.Original(log, eventId, value);
             }
 
-            Plugin.ChatLog.Activated(new ChatActivatedArgs(new ChannelSwitchInfo(null)) { AddIfNotPresent = addIfNotPresent });
+            Plugin.ChatLog?.Activated(new ChatActivatedArgs(new ChannelSwitchInfo(null)) { AddIfNotPresent = addIfNotPresent });
         }
         catch (Exception ex)
         {
@@ -247,7 +247,7 @@ public sealed unsafe class Chat : IDisposable
         }
 
         // If we already established a Foray tell session, don't let the game relabel overwrite it
-        if (Plugin.ChatLog.TellSpecial)
+        if (Plugin.ChatLog?.TellSpecial == true)
             return ret;
 
         // If ChatTwo is currently on a Mare linkshell channel (either fixed or temp),
@@ -288,7 +288,7 @@ public sealed unsafe class Chat : IDisposable
             try
             {
                 var target = new TellTarget(playerName->ToString(), worldId, contentId, (TellReason) reason);
-                Plugin.ChatLog.Activated(new ChatActivatedArgs(new ChannelSwitchInfo(InputChannel.Tell, permanent: setChatType))
+                Plugin.ChatLog?.Activated(new ChatActivatedArgs(new ChannelSwitchInfo(InputChannel.Tell, permanent: setChatType))
                 {
                     TellReason = (TellReason) reason,
                     TellTarget = target,
@@ -313,7 +313,7 @@ public sealed unsafe class Chat : IDisposable
             try
             {
                 var target = new TellTarget(playerName->ToString(), worldId, contentId, (TellReason) reason);
-                Plugin.ChatLog.Activated(new ChatActivatedArgs(new ChannelSwitchInfo(InputChannel.Tell))
+                Plugin.ChatLog?.Activated(new ChatActivatedArgs(new ChannelSwitchInfo(InputChannel.Tell))
                 {
                     TellReason = (TellReason) reason,
                     TellTarget = target,
@@ -482,7 +482,8 @@ public sealed unsafe class Chat : IDisposable
 
         // Send tell via CommandInner later and let the game handle it
         // Only works because we use the SetTellTargetInForay function to set all required information
-        Plugin.ChatLog.TellSpecial = true;
+        if (Plugin.ChatLog != null)
+            Plugin.ChatLog.TellSpecial = true;
 
         var utfName = Utf8String.FromString(name);
         var utfWorld = Utf8String.FromString(worldName);
