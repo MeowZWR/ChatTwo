@@ -5,13 +5,13 @@ using Dalamud.Bindings.ImGui;
 
 namespace ChatTwo.Ui.SettingsTabs;
 
-internal sealed class Changelog : ISettingsTab
+public sealed class Changelog : ISettingsTab
 {
     private Configuration Mutable { get; }
 
     public string Name => Language.Options_Changelog_Tab + "###tabs-changelog";
 
-    internal Changelog(Configuration mutable)
+    public Changelog(Configuration mutable)
     {
         Mutable = mutable;
     }

@@ -1,10 +1,21 @@
+using ChatTwo.Code;
 using Dalamud.Game.Command;
+using Lumina.Excel.Sheets;
 
 namespace ChatTwo;
 
-internal sealed class Commands : IDisposable
+public sealed class Commands : IDisposable
 {
     private readonly Dictionary<string, CommandWrapper> Registered = [];
+
+    public Dictionary<string, ChatType> TextCommandChannels { get; } = new();
+    public Dictionary<string, TextCommand> AllCommands { get; } = [];
+
+    public Commands()
+    {
+        SetUpTextCommandChannels();
+        SetUpAllCommands();
+    }
 
     public void Dispose()
     {
@@ -12,7 +23,7 @@ internal sealed class Commands : IDisposable
             Plugin.CommandManager.RemoveHandler(name);
     }
 
-    internal void Initialise()
+    public void Initialise()
     {
         foreach (var wrapper in Registered.Values)
         {
@@ -24,7 +35,7 @@ internal sealed class Commands : IDisposable
         }
     }
 
-    internal CommandWrapper Register(string name, string? description = null, bool? showInHelp = null)
+    public CommandWrapper Register(string name, string? description = null, bool? showInHelp = null)
     {
         if (Registered.TryGetValue(name, out var wrapper))
         {
@@ -58,24 +69,71 @@ internal sealed class Commands : IDisposable
             Plugin.Log.Error(ex, $"Error while executing command {command}");
         }
     }
+
+    #region Ingame Commands
+    private void SetUpTextCommandChannels()
+    {
+        TextCommandChannels.Clear();
+
+        foreach (var input in Enum.GetValues<InputChannel>())
+        {
+            var commands = input.TextCommands();
+            if (commands == null)
+                continue;
+
+            var type = input.ToChatType();
+            foreach (var command in commands)
+                AddTextCommandChannel(command, type);
+        }
+
+        if (Sheets.TextCommandSheet.TryGetRow(116, out var row))
+            AddTextCommandChannel(row, ChatType.Echo);
+    }
+
+    private void AddTextCommandChannel(TextCommand command, ChatType type)
+    {
+        TextCommandChannels[command.Command.ToString()] = type;
+        TextCommandChannels[command.ShortCommand.ToString()] = type;
+        TextCommandChannels[command.Alias.ToString()] = type;
+        TextCommandChannels[command.ShortAlias.ToString()] = type;
+    }
+
+    private void SetUpAllCommands()
+    {
+        foreach (var command in Sheets.TextCommandSheet)
+        {
+            if (!command.Command.IsEmpty)
+                AllCommands.TryAdd(command.Command.ToString(), command);
+
+            if (!command.ShortCommand.IsEmpty)
+                AllCommands.TryAdd(command.ShortCommand.ToString(), command);
+
+            if (!command.Alias.IsEmpty)
+                AllCommands.TryAdd(command.Alias.ToString(), command);
+
+            if (!command.ShortAlias.IsEmpty)
+                AllCommands.TryAdd(command.ShortAlias.ToString(), command);
+        }
+    }
+    #endregion
 }
 
-internal sealed class CommandWrapper
+public sealed class CommandWrapper
 {
-    internal string Name { get; }
-    internal string? Description { get; set; }
-    internal bool ShowInHelp { get; set; }
+    public string Name { get; }
+    public string? Description { get; set; }
+    public bool ShowInHelp { get; set; }
 
-    internal event Action<string, string>? Execute;
+    public event Action<string, string>? Execute;
 
-    internal CommandWrapper(string name, string? description, bool showInHelp)
+    public CommandWrapper(string name, string? description, bool showInHelp)
     {
         Name = name;
         Description = description;
         ShowInHelp = showInHelp;
     }
 
-    internal void Invoke(string command, string arguments)
+    public void Invoke(string command, string arguments)
     {
         Execute?.Invoke(command, arguments);
     }

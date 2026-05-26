@@ -2,9 +2,11 @@
 using System.Collections;
 using System.Data.Common;
 using ChatTwo.Code;
+using ChatTwo.Resources;
 using ChatTwo.Ui;
 using ChatTwo.Util;
 using Dalamud.Game.Text.SeStringHandling;
+using Dalamud.Interface.ImGuiNotification;
 using MessagePack;
 using MessagePack.Formatters;
 using MessagePack.Resolvers;
@@ -15,9 +17,9 @@ using Encoding = System.Text.Encoding;
 
 namespace ChatTwo;
 
-internal static class DbExtensions
+public static class DbExtensions
 {
-    internal static void Execute(this DbConnection conn, string sql)
+    public static void Execute(this DbConnection conn, string sql)
     {
         using var cmd = conn.CreateCommand();
         cmd.CommandText = sql;
@@ -25,7 +27,7 @@ internal static class DbExtensions
     }
 }
 
-internal enum PayloadMessagePackType : byte
+public enum PayloadMessagePackType : byte
 {
     Achievement,
     PartyFinder,
@@ -111,19 +113,21 @@ public class SeStringMessagePackFormatter : IMessagePackFormatter<SeString?>
     }
 }
 
-internal class MessageStore : IDisposable
+public class MessageStore : IDisposable
 {
     private const int MessageQueryLimit = 10_000;
 
+    private Plugin Plugin;
     private string DbPath { get; }
 
     private SqliteConnection Connection { get; set; }
 
-    internal static readonly MessagePackSerializerOptions MsgPackOptions = MessagePackSerializerOptions.Standard
+    public static readonly MessagePackSerializerOptions MsgPackOptions = MessagePackSerializerOptions.Standard
         .WithResolver(CompositeResolver.Create([new PayloadMessagePackFormatter(), new SeStringMessagePackFormatter()], [StandardResolver.Instance]));
 
-    internal MessageStore(string dbPath)
+    public MessageStore(Plugin plugin, string dbPath)
     {
+        Plugin = plugin;
         DbPath = dbPath;
         Connection = Connect();
         Migrate();
@@ -169,12 +173,16 @@ internal class MessageStore : IDisposable
         {
             case <= 0:
                 migrationsToDo.Add(Migrate0);
-                // Migration support was only added in version 1. Migrate0 is
+
+                // Migration support was only added in version 1. Migrate 0 is
                 // idempotent.
                 migrationsToDo.Add(Migrate1);
+                migrationsToDo.Add(Migrate2);
+                migrationsToDo.Add(Migrate3);
                 break;
             case 1:
                 migrationsToDo.Add(Migrate2);
+                migrationsToDo.Add(Migrate3);
                 break;
             case 2:
                 migrationsToDo.Add(Migrate3);
@@ -187,6 +195,7 @@ internal class MessageStore : IDisposable
 
     private void Migrate0()
     {
+        Plugin.Log.Information("Running migration 0: Creating tables");
         Connection.Execute(@"
             CREATE TABLE IF NOT EXISTS messages (
                 Id BLOB PRIMARY KEY NOT NULL,  -- Guid
@@ -211,6 +220,7 @@ internal class MessageStore : IDisposable
 
     private void Migrate1()
     {
+        Plugin.Log.Information("Running migration 1: Adding Deleted column");
         Connection.Execute(@"
             -- Migration 1: Add Deleted column
             ALTER TABLE messages ADD COLUMN Deleted BOOLEAN NOT NULL DEFAULT false;
@@ -221,6 +231,7 @@ internal class MessageStore : IDisposable
 
     private void Migrate2()
     {
+        Plugin.Log.Information("Running migration 2: Adding Channel generated column");
         Connection.Execute(@"
             -- Migration 2: Add Channel generated column
             ALTER TABLE messages ADD COLUMN Channel INTEGER GENERATED ALWAYS AS (Code & 0x7f) VIRTUAL;
@@ -232,38 +243,93 @@ internal class MessageStore : IDisposable
 
     private void Migrate3()
     {
-        Connection.Execute(@"
-            -- Migration 3: Fix log kinds to fit the new format
-            -- Add new ChatType, SourceKind, TargetKind (byte), SortCodeV2
-            -- Migrate OldChatColumn
-                -- ChatType = OldChatColumn & 0x7f
-                -- SourceKind = log2(1 << ((OldChatColumn >> 11) & 0xF))
-                -- TargetKind = trunc(log2(1 << ((OldChatColumn >> 7) & 0xF)))
-                -- Virtual SortCodeV2 = ChatType << 16 | SourceKind << 8 | TargetKind
-            -- Delete OldChatColumn, Virtual Channel
+        Plugin.Log.Information("Running migration 3: Fix log kinds to fit the new format");
 
-            ALTER TABLE messages ADD COLUMN ChatType INTEGER;
-            CREATE INDEX IF NOT EXISTS idx_messages_chat_type ON messages (ChatType);
-            ALTER TABLE messages ADD COLUMN SourceKind INTEGER;
-            ALTER TABLE messages ADD COLUMN TargetKind INTEGER;
+        // Only set this the first
+        if (Plugin.Config.MigrationStatus == MigrationStatus.NotStarted)
+        {
+            Plugin.Config.MigrationStatus = MigrationStatus.Started;
+            Plugin.SaveConfig();
+        }
 
-            UPDATE messages SET
-                                ChatType = Code & 0x7f,
-                                SourceKind = trunc(log2(1 << ((Code >> 11) & 0xF))),
-                                TargetKind = trunc(log2(1 << ((Code >> 7) & 0xF)))
-            WHERE true;
+        try
+        {
+            // Only backup if this is the first time
+            if (Plugin.Config.MigrationStatus == MigrationStatus.Started)
+            {
+                File.Copy(DbPath, $"{DbPath}-migration-bak");
 
-            DROP INDEX idx_messages_channel;
-            ALTER TABLE messages DROP COLUMN Channel;
-            ALTER TABLE messages DROP COLUMN Code;
-            ALTER TABLE messages DROP COLUMN SortCode;
-        ");
+                Plugin.Config.MigrationStatus = MigrationStatus.Copied;
+                Plugin.SaveConfig();
+            }
 
-        SetMigrationVersion(3);
+            Connection.Execute(@"
+                -- Migration 3: Fix log kinds to fit the new format
+                -- Add new ChatType, SourceKind, TargetKind (byte), SortCodeV2
+                -- Migrate OldChatColumn
+                    -- ChatType = OldChatColumn & 0x7f
+                    -- SourceKind = log2(1 << ((OldChatColumn >> 11) & 0xF))
+                    -- TargetKind = trunc(log2(1 << ((OldChatColumn >> 7) & 0xF)))
+                    -- Virtual SortCodeV2 = ChatType << 16 | SourceKind << 8 | TargetKind
+                -- Delete OldChatColumn, Virtual Channel
+
+                ALTER TABLE messages ADD COLUMN ChatType INTEGER;
+                CREATE INDEX IF NOT EXISTS idx_messages_chat_type ON messages (ChatType);
+                ALTER TABLE messages ADD COLUMN SourceKind INTEGER;
+                ALTER TABLE messages ADD COLUMN TargetKind INTEGER;
+
+                UPDATE messages SET
+                                    ChatType = Code & 0x7f,
+                                    SourceKind = trunc(log2(1 << ((Code >> 11) & 0xF))),
+                                    TargetKind = trunc(log2(1 << ((Code >> 7) & 0xF)))
+                WHERE true;
+
+                DROP INDEX idx_messages_channel;
+                ALTER TABLE messages DROP COLUMN Channel;
+                ALTER TABLE messages DROP COLUMN Code;
+                ALTER TABLE messages DROP COLUMN SortCode;
+            ");
+
+            SetMigrationVersion(3);
+        }
+        catch (Exception ex)
+        {
+            Plugin.Log.Error(ex, "Failed to migrate database");
+            Plugin.Notification.AddNotification(
+                new Notification
+                {
+                    Title = Language.Database_Migration_Error_Title,
+                    Content = Language.Database_Migration_Error_Desc,
+                    Type = NotificationType.Error,
+                    Minimized = false,
+                    UserDismissable = true,
+                    InitialDuration = TimeSpan.FromSeconds(100000),
+                });
+
+            Connection.Close();
+            Connection.Dispose();
+
+            File.Delete(DbPath);
+
+            Plugin.Config.MigrationStatus = MigrationStatus.Failed;
+            Plugin.SaveConfig();
+
+            throw;
+        }
+
+        // Only delete backup if migration has successfully ran the first time
+        if (Plugin.Config.MigrationStatus == MigrationStatus.Copied)
+        {
+            File.Delete($"{DbPath}-migration-bak");
+
+            Plugin.Config.MigrationStatus = MigrationStatus.Finished;
+            Plugin.SaveConfig();
+        }
     }
 
     private void SetMigrationVersion(int version)
     {
+        Plugin.Log.Information($"Setting version {version}");
         using var cmd = Connection.CreateCommand();
         // Parameters aren't supported for PRAGMA queries, and you can't set the
         // version with a pragma_ function.
@@ -271,13 +337,13 @@ internal class MessageStore : IDisposable
         cmd.ExecuteNonQuery();
     }
 
-    internal void ClearMessages()
+    public void ClearMessages()
     {
         Connection.Execute("DELETE FROM messages;");
         PerformMaintenance();
     }
 
-    internal void PerformMaintenance()
+    public void PerformMaintenance()
     {
         Connection.Execute(@"
             VACUUM;
@@ -287,17 +353,17 @@ internal class MessageStore : IDisposable
     }
 
     private string LogPath => DbPath + "-wal";
-    internal long DatabaseSize() => !File.Exists(DbPath) ? 0 : new FileInfo(DbPath).Length;
-    internal long DatabaseLogSize() => !File.Exists(LogPath) ? 0 : new FileInfo(LogPath).Length;
+    public long DatabaseSize() => !File.Exists(DbPath) ? 0 : new FileInfo(DbPath).Length;
+    public long DatabaseLogSize() => !File.Exists(LogPath) ? 0 : new FileInfo(LogPath).Length;
 
-    internal int MessageCount()
+    public int MessageCount()
     {
         using var cmd = Connection.CreateCommand();
         cmd.CommandText = "SELECT COUNT(*) FROM messages;";
         return Convert.ToInt32(cmd.ExecuteScalar());
     }
 
-    internal void UpsertMessage(Message message)
+    public void UpsertMessage(Message message)
     {
         using var cmd = Connection.CreateCommand();
         cmd.CommandText = @"
@@ -367,7 +433,7 @@ internal class MessageStore : IDisposable
     /// <param name="receiver">The receiver content ID to filter by. If null, no filtering is performed.</param>
     /// <param name="since">Only show messages since this date. If null, no filtering is performed.</param>
     /// <param name="count">The amount to return. Defaults to 10,000.</param>
-    internal MessageEnumerator GetMostRecentMessages(ulong? receiver = null, DateTimeOffset? since = null, int count = MessageQueryLimit)
+    public MessageEnumerator GetMostRecentMessages(ulong? receiver = null, DateTimeOffset? since = null, int count = MessageQueryLimit)
     {
         List<string> whereClauses = ["deleted = false"];
         if (receiver != null)
@@ -418,7 +484,7 @@ internal class MessageStore : IDisposable
     /// <summary>
     /// Marks a message as deleted so it won't get returned in queries.
     /// </summary>
-    internal void DeleteMessage(Guid id)
+    public void DeleteMessage(Guid id)
     {
         using var cmd = Connection.CreateCommand();
         cmd.CommandText = "UPDATE messages SET Deleted = true WHERE Id = $Id;";
@@ -426,7 +492,7 @@ internal class MessageStore : IDisposable
         cmd.ExecuteNonQuery();
     }
 
-    internal long CountDateRange(DateTime after, DateTime before, IEnumerable<byte> channels, ulong? receiver = null)
+    public long CountDateRange(DateTime after, DateTime before, IEnumerable<byte> channels, ulong? receiver = null)
     {
         List<string> whereClauses = ["deleted = false"];
         if (receiver != null)
@@ -455,7 +521,7 @@ internal class MessageStore : IDisposable
         return (long) cmd.ExecuteScalar()!;
     }
 
-    internal MessageEnumerator GetDateRange(DateTime after, DateTime before, IEnumerable<byte> channels, ulong? receiver = null)
+    public MessageEnumerator GetDateRange(DateTime after, DateTime before, IEnumerable<byte> channels, ulong? receiver = null)
     {
         List<string> whereClauses = ["deleted = false"];
         if (receiver != null)
@@ -496,7 +562,7 @@ internal class MessageStore : IDisposable
         return new MessageEnumerator(cmd.ExecuteReader());
     }
 
-    internal MessageEnumerator GetPagedDateRange(DateTime after, DateTime before, IEnumerable<byte> channels, ulong? receiver = null, int page = 0)
+    public MessageEnumerator GetPagedDateRange(DateTime after, DateTime before, IEnumerable<byte> channels, ulong? receiver = null, int page = 0)
     {
         List<string> whereClauses = ["deleted = false"];
         if (receiver != null)
@@ -526,6 +592,7 @@ internal class MessageStore : IDisposable
                 ExtraChatChannel
             FROM messages
             " + whereClause + @"
+            ORDER BY Date
             LIMIT $Offset, $OffsetCount;
         ";
         cmd.CommandTimeout = 120; // this could take a while on slow computers
@@ -536,13 +603,13 @@ internal class MessageStore : IDisposable
         cmd.Parameters.AddWithValue("$After", ((DateTimeOffset) after).ToUnixTimeMilliseconds());
         cmd.Parameters.AddWithValue("$Before", ((DateTimeOffset) before).ToUnixTimeMilliseconds());
         cmd.Parameters.AddWithValue("$Offset", DbViewer.RowPerPage * page);
-        cmd.Parameters.AddWithValue("OffsetCount", DbViewer.RowPerPage);
+        cmd.Parameters.AddWithValue("$OffsetCount", DbViewer.RowPerPage);
 
         return new MessageEnumerator(cmd.ExecuteReader());
     }
 }
 
-internal class MessageEnumerator(DbDataReader reader) : IEnumerable<Message>, IDisposable, IAsyncDisposable
+public class MessageEnumerator(DbDataReader reader) : IEnumerable<Message>, IDisposable, IAsyncDisposable
 {
     private const int MaxErrorLogs = 10;
 

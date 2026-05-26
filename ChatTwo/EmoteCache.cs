@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using ChatTwo.Http;
 using Dalamud.Interface.Textures;
 using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Utility;
@@ -21,8 +22,6 @@ public static class EmoteCache
         "DogLookingSussyAndCold", "DICKS"
     ];
 
-    private static readonly HttpClient Client = new();
-
     private const string BetterTTV = "https://api.betterttv.net/3";
     private const string GlobalEmotes = $"{BetterTTV}/cached/emotes/global";
     private const string Top100Emotes = "{0}/emotes/shared/top?before={1}&limit=100";
@@ -32,23 +31,23 @@ public static class EmoteCache
     private struct Top100()
     {
         [JsonPropertyName("emote")]
-        public Emote Emote = default;
+        public Emote Emote { get; set; }
 
         [JsonPropertyName("id")]
-        public string Id = string.Empty;
+        public string Id { get; set; } = string.Empty;
     }
 
     [Serializable]
     public struct Emote()
     {
         [JsonPropertyName("id")]
-        public string Id = string.Empty;
+        public string Id { get; set; } = string.Empty;
 
         [JsonPropertyName("code")]
-        public string Code = string.Empty;
+        public string Code { get; set; } = string.Empty;
 
         [JsonPropertyName("imageType")]
-        public string ImageType = string.Empty;
+        public string ImageType { get; set; } = string.Empty;
     }
 
     public enum LoadingState
@@ -74,7 +73,7 @@ public static class EmoteCache
         State = LoadingState.Loading;
         try
         {
-            var global = await Client.GetAsync(GlobalEmotes);
+            var global = await ServerCore.HttpClient.GetAsync(GlobalEmotes);
             var globalList = await global.Content.ReadAsStringAsync();
 
             foreach (var emote in JsonSerializer.Deserialize<Emote[]>(globalList)!)
@@ -84,7 +83,7 @@ public static class EmoteCache
             var lastId = string.Empty;
             for (var i = 0; i < 15; i++)
             {
-                var top = await Client.GetAsync(Top100Emotes.Format(BetterTTV, lastId));
+                var top = await ServerCore.HttpClient.GetAsync(Top100Emotes.Format(BetterTTV, lastId));
                 var topList = await top.Content.ReadAsStringAsync();
 
                 var jsonList = JsonSerializer.Deserialize<List<Top100>>(topList)!;
@@ -110,12 +109,12 @@ public static class EmoteCache
             emote.InnerDispose();
     }
 
-    internal static bool Exists(string code)
+    public static bool Exists(string code)
     {
         return State is LoadingState.Done && SortedCodeArray.Contains(code);
     }
 
-    internal static EmoteBase? GetEmote(string code)
+    public static EmoteBase? GetEmote(string code)
     {
         if (State is not LoadingState.Done)
             return null;
@@ -161,7 +160,7 @@ public static class EmoteCache
             ImGui.Image(Texture!.Handle, size);
         }
 
-        internal async Task<byte[]> LoadAsync(Emote emote)
+        public async Task<byte[]> LoadAsync(Emote emote)
         {
             var dir = Path.Join(Plugin.Interface.ConfigDirectory.FullName, "EmoteCacheV1");
             Directory.CreateDirectory(dir);
@@ -173,7 +172,7 @@ public static class EmoteCache
             }
             else
             {
-                var content = await new HttpClient().GetAsync(EmotePath.Format(emote.Id));
+                var content = await ServerCore.HttpClient.GetAsync(EmotePath.Format(emote.Id));
                 RawData = await content.Content.ReadAsByteArrayAsync();
 
                 await using var stream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.Read);

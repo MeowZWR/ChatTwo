@@ -13,6 +13,7 @@ using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
+using Dalamud.Interface.Components;
 using Dalamud.Interface.ImGuiNotification;
 using Lumina.Data.Files;
 using Lumina.Text.ReadOnly;
@@ -54,6 +55,8 @@ public class DbViewer : Window
     private bool IsExporting;
     private string InputPath = string.Empty;
     private IActiveNotification Notification = null!;
+
+    private bool NeedsScrollReset;
 
     public DbViewer(Plugin plugin) : base("DBViewer###chat2-dbviewer")
     {
@@ -103,11 +106,17 @@ public class DbViewer : Window
         var spacing = 3.0f * ImGuiHelpers.GlobalScale;
         DateWidget.DatePickerWithInput("##FromDate", 1, ref MinDateString, ref AfterDate, DateFormat);
         DateWidget.DatePickerWithInput("##ToDate", 2, ref MaxDateString, ref BeforeDate, DateFormat, true);
+
         ImGui.SameLine(0, spacing);
+
         if (ImGuiUtil.IconButton(FontAwesomeIcon.Recycle))
             DateReset();
-        ImGuiUtil.DrawArrows(ref CurrentPage, 1, totalPages, spacing);
+
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip(Language.DbViewer_Date_Reset_Tooltip);
+
         ImGui.SameLine(0, spacing);
+
         ChannelSelection();
 
         var skipText = Language.DbViewer_CharacterOption;
@@ -127,12 +136,12 @@ public class DbViewer : Window
             ImGui.OpenPopup("InputPathDialog");
 
         if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
-            ImGui.SetTooltip("Pick a folder location for export.");
+            ImGui.SetTooltip(Language.Folder_Export_Location_Tooltip);
 
         using (var innerPopup = ImRaii.Popup("InputPathDialog"))
         {
             if (innerPopup.Success)
-                Plugin.FileDialogManager.OpenFolderDialog("Pick an export location", (b, s) => { if (b) InputPath = s; }, null, true);
+                Plugin.FileDialogManager.OpenFolderDialog(Language.Folder_Selection_Header, (b, s) => { if (b) InputPath = s; }, null, true);
         }
 
         ImGui.SameLine(0, spacing);
@@ -144,7 +153,7 @@ public class DbViewer : Window
                     new Notification
                     {
                         Title = "Chat2 Text Export",
-                        Content = "Loading logs ...",
+                        Content = Language.ChatExport_Initial,
                         Type = NotificationType.Info,
                         Minimized = false,
                         UserDismissable = false,
@@ -156,7 +165,7 @@ public class DbViewer : Window
         }
 
         if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
-            ImGui.SetTooltip("Export the message history to a text file.");
+            ImGui.SetTooltip(Language.Export_Txt_Tooltip);
 
         ImGui.SameLine(0, spacing);
         using (ImRaii.Disabled(InputPath.Length == 0 || IsExporting))
@@ -167,7 +176,7 @@ public class DbViewer : Window
                     new Notification
                     {
                         Title = "Chat2 Json Export",
-                        Content = "Loading logs ...",
+                        Content = Language.ChatExport_Initial,
                         Type = NotificationType.Info,
                         Minimized = false,
                         UserDismissable = false,
@@ -179,13 +188,15 @@ public class DbViewer : Window
         }
 
         if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
-            ImGui.SetTooltip("Export the message history to a json file.");
+            ImGui.SetTooltip(Language.Export_Json_Tooltip);
 
         var width = 350 * ImGuiHelpers.GlobalScale;
         var loadingIndicator = IsProcessing && ProcessingStart < Environment.TickCount64;
 
         ImGui.AlignTextToFramePadding();
         ImGui.TextUnformatted(string.Format(Language.DbViewer_Page, CurrentPage, totalPages, Count, loadingIndicator ? Language.DbViewer_LoadingIndicator : ""));
+        ImGuiUtil.DrawArrows(ref CurrentPage, 1, totalPages, spacing, tooltipLeft: Language.Page_ArrowLeft_Tooltip, tooltipRight: Language.Page_ArrowRight_Tooltip);
+
         ImGui.SameLine(ImGui.GetContentRegionMax().X - width);
         ImGui.SetNextItemWidth(width);
         if (ImGui.InputTextWithHint("##searchbar", Language.DbViewer_SearcHint, ref SimpleSearchTerm, 30))
@@ -221,6 +232,7 @@ public class DbViewer : Window
                     Messages = rangeMessageEnumerator.ToArray();
 
                     Filtered = Filter(Messages);
+                    NeedsScrollReset = true;
                 }
                 catch (Exception ex)
                 {
@@ -244,6 +256,12 @@ public class DbViewer : Window
         using var child = ImRaii.Child("##tableChild");
         if (!child.Success)
             return;
+
+        if (NeedsScrollReset)
+        {
+            NeedsScrollReset = false;
+            ImGui.SetScrollY(0.0f);
+        }
 
         using var table = ImRaii.Table("##messageHistory", 4, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.Resizable);
         if (!table.Success)
@@ -270,16 +288,17 @@ public class DbViewer : Window
                 ImGuiUtil.Tooltip(message.Code.Type.Name());
 
             ImGui.TableNextColumn();
-            Plugin.ChatLogWindow.DrawChunks(message.Sender);
+            Plugin.ChatLog.InputHandler.ChunkHandler.DrawChunks(message.Sender);
 
             ImGui.TableNextColumn();
-            Plugin.ChatLogWindow.DrawChunks(message.Content);
+            Plugin.ChatLog.InputHandler.ChunkHandler.DrawChunks(message.Content);
         }
     }
 
     private void ChannelSelection()
     {
         const string addTabPopup = "add-channel-popup";
+        var spacing = 3.0f * ImGuiHelpers.GlobalScale;
 
         if (ImGui.Button("Channels"))
             ImGui.OpenPopup(addTabPopup);
@@ -294,6 +313,30 @@ public class DbViewer : Window
 
         foreach (var (header, types) in ChatTypeExt.SortOrder)
         {
+            using var pushedId = ImRaii.PushId(header);
+
+            if (ImGuiComponents.IconButton(FontAwesomeIcon.Check))
+            {
+                foreach (var type in types)
+                    SelectedChannels.TryAdd(type, (ChatSourceExt.All, ChatSourceExt.All));
+            }
+
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip("Select all");
+
+            ImGui.SameLine(0, spacing);
+
+            if (ImGuiComponents.IconButton(FontAwesomeIcon.Times))
+            {
+                foreach (var type in types)
+                    SelectedChannels.Remove(type);
+            }
+
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip("Unselect all");
+
+            ImGui.SameLine(0, spacing);
+
             using var headerNode = ImRaii.TreeNode(header);
             if (!headerNode.Success)
                 continue;
@@ -528,21 +571,21 @@ public class DbViewer : Window
             }
 
             var color = text.Foreground;
-            if (color == null && text.FallbackColour != null)
+            if (color == null && text.FallbackColor != null)
             {
-                var type = text.FallbackColour.Value;
+                var type = text.FallbackColor.Value;
                 color = Plugin.Config.ChatColours.TryGetValue(type, out var col) ? col : type.DefaultColor();
             }
 
             color ??= 0;
 
             var userContent = text.Content;
-            if (Plugin.ChatLogWindow.ScreenshotMode)
+            if (PlayerUtil.ScreenshotMode)
             {
                 if (chunk.Link is PlayerPayload playerPayload)
-                    userContent = Plugin.ChatLogWindow.HidePlayerInString(userContent, playerPayload.PlayerName, playerPayload.World.RowId);
-                else if (Plugin.ObjectTable.LocalPlayer is { } player)
-                    userContent = Plugin.ChatLogWindow.HidePlayerInString(userContent, player.Name.TextValue, player.HomeWorld.RowId);
+                    userContent = PlayerUtil.HidePlayerInString(userContent, playerPayload.PlayerName, playerPayload.World.RowId);
+                else if (Plugin.PlayerState.IsLoaded)
+                    userContent = PlayerUtil.HidePlayerInString(userContent, Plugin.PlayerState.CharacterName, Plugin.PlayerState.HomeWorld.RowId);
             }
 
             var isNotUrl = text.Link is not UriPayload;

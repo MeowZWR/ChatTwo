@@ -18,15 +18,15 @@ public sealed class ExtraChat : IDisposable
     private ICallGateSubscriber<Dictionary<string, uint>, Dictionary<string, uint>> ChannelCommandColoursGate { get; }
     private ICallGateSubscriber<Dictionary<Guid, string>, Dictionary<Guid, string>> ChannelNamesGate { get; }
 
-    internal (string, uint)? ChannelOverride { get; set; }
+    public (string, uint)? ChannelOverride { get; set; }
 
     private Dictionary<string, uint> ChannelCommandColoursInternal { get; set; } = new();
-    internal IReadOnlyDictionary<string, uint> ChannelCommandColours => ChannelCommandColoursInternal;
+    public IReadOnlyDictionary<string, uint> ChannelCommandColours => ChannelCommandColoursInternal;
 
     private Dictionary<Guid, string> ChannelNamesInternal { get; set; } = new();
-    internal IReadOnlyDictionary<Guid, string> ChannelNames => ChannelNamesInternal;
+    public IReadOnlyDictionary<Guid, string> ChannelNames => ChannelNamesInternal;
 
-    internal ExtraChat()
+    public ExtraChat()
     {
         OverrideChannelGate = Plugin.Interface.GetIpcSubscriber<OverrideInfo, object>("ExtraChat.OverrideChannelColour");
         ChannelCommandColoursGate = Plugin.Interface.GetIpcSubscriber<Dictionary<string, uint>, Dictionary<string, uint>>("ExtraChat.ChannelCommandColours");

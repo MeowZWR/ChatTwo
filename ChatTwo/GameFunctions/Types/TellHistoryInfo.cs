@@ -1,12 +1,12 @@
 namespace ChatTwo.GameFunctions.Types;
 
-internal sealed class TellHistoryInfo
+public sealed class TellHistoryInfo
 {
-    internal string Name { get; }
-    internal uint World { get; }
-    internal ulong ContentId { get; }
+    public string Name { get; }
+    public uint World { get; }
+    public ulong ContentId { get; }
 
-    internal TellHistoryInfo(string name, uint world, ulong contentId)
+    public TellHistoryInfo(string name, uint world, ulong contentId)
     {
         Name = name;
         World = world;

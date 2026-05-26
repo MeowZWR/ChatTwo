@@ -6,9 +6,9 @@ using FFXIVClientStructs.FFXIV.Client.UI.Info;
 
 namespace ChatTwo.GameFunctions;
 
-internal static unsafe class Party
+public static unsafe class Party
 {
-    internal static void InviteSameWorld(string name, ushort world, ulong contentId)
+    public static void InviteSameWorld(string name, ushort world, ulong contentId)
     {
         // this only works if target is on the same world
         fixed (byte* namePtr = name.ToTerminatedBytes()) {
@@ -16,7 +16,7 @@ internal static unsafe class Party
         }
     }
 
-    internal static void InviteOtherWorld(ulong contentId, ushort worldId = 0)
+    public static void InviteOtherWorld(ulong contentId, ushort worldId = 0)
     {
         // third param is world, but it requires a specific world
         // if they're not on that world, it will fail
@@ -31,7 +31,7 @@ internal static unsafe class Party
         InfoProxyPartyInvite.Instance()->InviteToPartyContentId(contentId, worldId);
     }
 
-    internal static void InviteInInstance(ulong contentId)
+    public static void InviteInInstance(ulong contentId)
     {
         if (contentId == 0)
         {
@@ -42,14 +42,14 @@ internal static unsafe class Party
         InfoProxyPartyInvite.Instance()->InviteToPartyInInstanceByContentId(contentId);
     }
 
-    internal static void Kick(string name, ulong contentId)
+    public static void Kick(string name, ulong contentId)
     {
         fixed (byte* namePtr = name.ToTerminatedBytes()) {
             AgentPartyMember.Instance()->Kick(namePtr, 0, contentId);
         }
     }
 
-    internal static void Promote(string name, ulong contentId)
+    public static void Promote(string name, ulong contentId)
     {
         fixed (byte* namePtr = name.ToTerminatedBytes()) {
             AgentPartyMember.Instance()->Promote(namePtr, 0, contentId);

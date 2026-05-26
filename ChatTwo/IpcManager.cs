@@ -4,14 +4,14 @@ using Dalamud.Plugin.Ipc;
 
 namespace ChatTwo;
 
-internal sealed class IpcManager : IDisposable
+public sealed class IpcManager : IDisposable
 {
     private ICallGateProvider<string> RegisterGate { get; }
     private ICallGateProvider<string, object?> UnregisterGate { get; }
     private ICallGateProvider<object?> AvailableGate { get; }
     private ICallGateProvider<string, PlayerPayload?, ulong, Payload?, SeString?, SeString?, object?> InvokeGate { get; }
 
-    internal List<string> Registered { get; } = [];
+    public List<string> Registered { get; } = [];
 
     public IpcManager()
     {
@@ -28,7 +28,7 @@ internal sealed class IpcManager : IDisposable
         AvailableGate.SendMessage();
     }
 
-    internal void Invoke(string id, PlayerPayload? sender, ulong contentId, Payload? payload, SeString? senderString, SeString? content)
+    public void Invoke(string id, PlayerPayload? sender, ulong contentId, Payload? payload, SeString? senderString, SeString? content)
     {
         InvokeGate.SendMessage(id, sender, contentId, payload, senderString, content);
     }

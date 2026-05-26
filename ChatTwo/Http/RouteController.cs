@@ -181,11 +181,7 @@ public class RouteController
             return;
         }
 
-        await Plugin.Framework.RunOnFrameworkThread(() =>
-        {
-            HostContext.Core.Plugin.ChatLogWindow.Chat = content.Message;
-            HostContext.Core.Plugin.ChatLogWindow.SendChatBox(HostContext.Core.Plugin.CurrentTab);
-        });
+        await Plugin.Framework.RunOnFrameworkThread(() => { HostContext.Core.SendHandler.SendWithoutContext(content.Message); });
 
         ctx.Response.StatusCode = 201;
         await ctx.Response.Send(JsonConvert.SerializeObject(new OkResponse("Message was send to the channel.")));
@@ -204,7 +200,7 @@ public class RouteController
             return;
         }
 
-        await Plugin.Framework.RunOnFrameworkThread(() => { HostContext.Core.Plugin.ChatLogWindow.SetChannel(channel.Channel); });
+        await Plugin.Framework.RunOnFrameworkThread(() => { HostContext.Core.Plugin.Functions.Chat.SetChannelWithExtraChat(channel.Channel); });
 
         ctx.Response.StatusCode = 201;
         await ctx.Response.Send(JsonConvert.SerializeObject(new OkResponse("Channel switch was initiated.")));

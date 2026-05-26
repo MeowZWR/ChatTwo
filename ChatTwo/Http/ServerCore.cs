@@ -1,16 +1,22 @@
 ﻿using ChatTwo.Http.MessageProtocol;
+using ChatTwo.Ui.Handler;
 using Dalamud.Plugin.Services;
 
 namespace ChatTwo.Http;
 
 public class ServerCore : IAsyncDisposable
 {
+    public static readonly HttpClient HttpClient = new();
+
     public readonly Plugin Plugin;
+    public readonly SendHandler SendHandler;
     private readonly HostContext HostContext;
 
     public ServerCore(Plugin plugin)
     {
         Plugin = plugin;
+
+        SendHandler = new SendHandler(plugin);
         HostContext = new HostContext(this);
 
         Plugin.Framework.Update += FrameworkUpdate;
@@ -18,6 +24,7 @@ public class ServerCore : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        HttpClient.Dispose();
         Plugin.Framework.Update -= FrameworkUpdate;
         await HostContext.DisposeAsync();
     }
@@ -36,7 +43,7 @@ public class ServerCore : IAsyncDisposable
     }
 
     #region SSE Helper
-    internal async Task PrepareNewClient(SSEConnection sse)
+    public async Task PrepareNewClient(SSEConnection sse)
     {
         // This takes long, so keep it outside the next frame
         var messages = await HostContext.Processing.GetAllMessages();
@@ -54,7 +61,7 @@ public class ServerCore : IAsyncDisposable
         });
     }
 
-    internal void SendNewMessage(Message message)
+    public void SendNewMessage(Message message)
     {
         if (!HostContext.IsActive)
             return;
@@ -74,7 +81,7 @@ public class ServerCore : IAsyncDisposable
         }
     }
 
-    internal void SendBulkMessageList()
+    public void SendBulkMessageList()
     {
         if (!HostContext.IsActive)
             return;
@@ -93,7 +100,7 @@ public class ServerCore : IAsyncDisposable
         }
     }
 
-    internal void SendChannelSwitch(Chunk[] channelName)
+    public void SendChannelSwitch(Chunk[] channelName)
     {
         if (!HostContext.IsActive)
             return;
@@ -113,7 +120,7 @@ public class ServerCore : IAsyncDisposable
         }
     }
 
-    internal void SendChannelList()
+    public void SendChannelList()
     {
         if (!HostContext.IsActive)
             return;
@@ -133,7 +140,7 @@ public class ServerCore : IAsyncDisposable
         }
     }
 
-    internal void SendNewLogin()
+    public void SendNewLogin()
     {
         if (!HostContext.IsActive)
             return;

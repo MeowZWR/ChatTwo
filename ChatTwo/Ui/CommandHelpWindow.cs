@@ -9,12 +9,12 @@ using Lumina.Text.ReadOnly;
 namespace ChatTwo.Ui;
 
 public class CommandHelpWindow : Window {
-    private ChatLogWindow LogWindow { get; }
+    private ChatLog.ChatLog ChatLogWindow { get; }
     private ReadOnlySeString? CommandDescription { get; set; }
 
-    internal CommandHelpWindow(ChatLogWindow logWindow) : base("command help##chat2-commandhelp")
+    public CommandHelpWindow(ChatLog.ChatLog chatLogWindow) : base("command help##chat2-commandhelp")
     {
-        LogWindow = logWindow;
+        ChatLogWindow = chatLogWindow;
 
         Flags = ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoMove |
                 ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.AlwaysAutoResize;
@@ -30,10 +30,10 @@ public class CommandHelpWindow : Window {
 
         var width = 350;
         var scaledWidth = width * ImGuiHelpers.GlobalScale;
-        var pos = LogWindow.LastWindowPos;
+        var pos = ChatLogWindow.LastWindowPos;
         switch (Plugin.Config.CommandHelpSide) {
             case CommandHelpSide.Right:
-                pos.X += LogWindow.LastWindowSize.X;
+                pos.X += ChatLogWindow.LastWindowSize.X;
                 break;
             case CommandHelpSide.Left:
                 pos.X -= scaledWidth;
@@ -48,7 +48,7 @@ public class CommandHelpWindow : Window {
         SizeConstraints = new WindowSizeConstraints
         {
             MinimumSize = new Vector2(width, 0),
-            MaximumSize = LogWindow.LastWindowSize with { X = width }
+            MaximumSize = ChatLogWindow.LastWindowSize with { X = width }
         };
 
         IsOpen = true;
@@ -59,6 +59,6 @@ public class CommandHelpWindow : Window {
         if (CommandDescription == null)
             return;
 
-        LogWindow.DrawChunks(ChunkUtil.ToChunks(CommandDescription.Value.ToDalamudString(), ChunkSource.None, null).ToList());
+        ChatLogWindow.InputHandler.ChunkHandler.DrawChunks(ChunkUtil.ToChunks(CommandDescription.Value.ToDalamudString(), ChunkSource.None, null).ToList());
     }
 }

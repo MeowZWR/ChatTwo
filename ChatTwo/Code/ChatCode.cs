@@ -41,6 +41,19 @@ public class ChatCode
         }
     }
 
+    public bool IsCraftOrGather()
+    {
+        switch (Type)
+        {
+            case ChatType.Crafting:
+            case ChatType.Gathering:
+            case ChatType.GatheringSystem:
+                return true;
+            default:
+                return false;
+        }
+    }
+
     public bool IsPlayerMessage()
     {
         switch (Type)

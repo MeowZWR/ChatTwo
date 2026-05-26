@@ -1,12 +1,12 @@
 namespace ChatTwo.Ui;
 
-internal class AutoCompleteInfo
+public class AutoCompleteInfo
 {
-    internal string ToComplete;
-    internal int StartPos { get; }
-    internal int EndPos { get; }
+    public string ToComplete;
+    public int StartPos { get; }
+    public int EndPos { get; }
 
-    internal AutoCompleteInfo(string toComplete, int startPos, int endPos)
+    public AutoCompleteInfo(string toComplete, int startPos, int endPos)
     {
         ToComplete = toComplete;
         StartPos = startPos;

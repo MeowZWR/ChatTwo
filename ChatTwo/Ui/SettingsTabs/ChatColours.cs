@@ -6,14 +6,14 @@ using Dalamud.Bindings.ImGui;
 
 namespace ChatTwo.Ui.SettingsTabs;
 
-internal sealed class ChatColours : ISettingsTab
+public sealed class ChatColours : ISettingsTab
 {
     private Plugin Plugin { get; }
     private Configuration Mutable { get; }
 
     public string Name => Language.Options_ChatColours_Tab + "###tabs-chat-colours";
 
-    internal ChatColours(Plugin plugin, Configuration mutable)
+    public ChatColours(Plugin plugin, Configuration mutable)
     {
         Plugin = plugin;
         Mutable = mutable;
@@ -31,8 +31,6 @@ internal sealed class ChatColours : ISettingsTab
         {
             Plugin.Log.Warning($"There are {sortable.Count} sortable channels, but there are {total.Count} total channels.");
             total.ExceptWith(sortable);
-            foreach (var missing in total)
-                Plugin.Log.Information($"Missing {missing}");
         }
         #endif
     }

@@ -2,13 +2,13 @@ using Dalamud.Game.Text.SeStringHandling;
 
 namespace ChatTwo.Util;
 
-internal class PartyFinderPayload : Payload
+public class PartyFinderPayload : Payload
 {
     public override PayloadType Type => (PayloadType) 0x50;
 
-    internal uint Id { get; }
+    public uint Id { get; }
 
-    internal PartyFinderPayload(uint id)
+    public PartyFinderPayload(uint id)
     {
         Id = id;
     }
@@ -24,13 +24,13 @@ internal class PartyFinderPayload : Payload
     }
 }
 
-internal class AchievementPayload : Payload
+public class AchievementPayload : Payload
 {
     public override PayloadType Type => (PayloadType) 0x51;
 
-    internal uint Id { get; }
+    public uint Id { get; }
 
-    internal AchievementPayload(uint id)
+    public AchievementPayload(uint id)
     {
         Id = id;
     }
@@ -47,7 +47,7 @@ internal class AchievementPayload : Payload
 }
 
 
-internal class UriPayload(Uri uri) : Payload
+public class UriPayload(Uri uri) : Payload
 {
     public override PayloadType Type => (PayloadType) 0x52;
 
@@ -88,7 +88,7 @@ internal class UriPayload(Uri uri) : Payload
     }
 }
 
-internal class EmotePayload : Payload
+public class EmotePayload : Payload
 {
     public override PayloadType Type => (PayloadType) 0x53;
 

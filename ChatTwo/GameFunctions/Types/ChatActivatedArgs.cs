@@ -1,15 +1,15 @@
 namespace ChatTwo.GameFunctions.Types;
 
-internal sealed class ChatActivatedArgs
+public sealed class ChatActivatedArgs
 {
-    internal string? AddIfNotPresent { get; init; }
-    internal string? Input { get; init; }
-    internal ChannelSwitchInfo ChannelSwitchInfo { get; }
-    internal TellReason? TellReason { get; init; }
-    internal TellTarget? TellTarget { get; init; }
-    internal bool TellSpecial { get; init; } //  specific to Eureka/Bozja/Zadnor
+    public string? AddIfNotPresent { get; init; }
+    public string? Input { get; init; }
+    public ChannelSwitchInfo ChannelSwitchInfo { get; }
+    public TellReason? TellReason { get; init; }
+    public TellTarget? TellTarget { get; init; }
+    public bool TellSpecial { get; init; } //  specific to Eureka/Bozja/Zadnor
 
-    internal ChatActivatedArgs(ChannelSwitchInfo channelSwitchInfo)
+    public ChatActivatedArgs(ChannelSwitchInfo channelSwitchInfo)
     {
         ChannelSwitchInfo = channelSwitchInfo;
     }

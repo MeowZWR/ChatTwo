@@ -392,7 +392,7 @@
     <value>剧情</value>
   </data>
   <data name="Tabs_Presets_Tell">
-    <value>Tell Exclusive</value>
+    <value>悄悄话</value>
   </data>
   <data name="Options_Tabs_NewTab">
     <value>新建标签页</value>
@@ -1148,7 +1148,7 @@
         <value>禁用此频道的输入</value>
     </data>
   <data name="Options_Tabs_SenderMessages" xml:space="preserve">
-        <value>Show all messages send by target</value>
+        <value>显示目标发送的所有消息</value>
     </data>
   <data name="ChatLog_DisabledInput" xml:space="preserve">
         <value>此选项卡已禁用输入</value>
@@ -1405,25 +1405,74 @@
   <data name="Webinterface_UsageNotice" xml:space="preserve">
         <value>使用须知</value>
     </data>
-  <data name="Options_Help_SenderMessages" xml:space="preserve">
-        <value>This disables the channel selection and shows all messages coming from the target.</value>
+  <data name="Options_Help_SenderMessagesV2" xml:space="preserve">
+        <value>Shows all messages coming from the target.</value>
     </data>
   <data name="Options_Header_Target" xml:space="preserve">
-        <value>Target</value>
+        <value>选中</value>
     </data>
   <data name="ChatBox_Error_Empty" xml:space="preserve">
-        <value>message is empty</value>
+        <value>消息内容为空</value>
     </data>
   <data name="ChatBox_Error_Too_Long" xml:space="preserve">
-        <value>message is longer than 500 bytes</value>
+        <value>消息超过500字节</value>
     </data>
   <data name="ChatBox_Error_Invalid" xml:space="preserve">
-        <value>message contained invalid characters</value>
+        <value>消息包含非法字符</value>
     </data>
   <data name="ImGuiUtil_ChannelSelector_Source" xml:space="preserve">
-        <value>Source</value>
+        <value>来源</value>
     </data>
   <data name="ImGuiUtil_ChannelSelector_Target" xml:space="preserve">
-        <value>Target</value>
+        <value>选中</value>
+    </data>
+  <data name="ChannelSelector_Unselect" xml:space="preserve">
+        <value>取消全选</value>
+    </data>
+  <data name="ChannelSelector_Select" xml:space="preserve">
+        <value>全选</value>
+    </data>
+  <data name="Database_Migration_Error_Title" xml:space="preserve">
+        <value>Chat2 数据库迁移错误</value>
+    </data>
+  <data name="Database_Migration_Error_Desc" xml:space="preserve">
+        <value>数据库迁移失败，已创建新数据库。
+旧数据仍可恢复，请联系插件作者获取帮助。</value>
+    </data>
+  <data name="DbViewer_Date_Reset_Tooltip" xml:space="preserve">
+        <value>重置日期选择。</value>
+    </data>
+  <data name="Folder_Export_Location_Tooltip" xml:space="preserve">
+        <value>选择导出文件夹位置。</value>
+    </data>
+  <data name="Folder_Selection_Header" xml:space="preserve">
+        <value>请选择导出目录</value>
+    </data>
+  <data name="Export_Txt_Tooltip" xml:space="preserve">
+        <value>导出聊天记录为文本文件。</value>
+    </data>
+  <data name="Export_Json_Tooltip" xml:space="preserve">
+        <value>导出聊天记录为 json 文件。</value>
+    </data>
+  <data name="Page_ArrowLeft_Tooltip" xml:space="preserve">
+        <value>上一页</value>
+    </data>
+  <data name="Page_ArrowRight_Tooltip" xml:space="preserve">
+        <value>下一页</value>
+    </data>
+  <data name="DatePicker_Tooltip" xml:space="preserve">
+        <value>打开日期选择器</value>
+    </data>
+  <data name="ChatExport_Initial" xml:space="preserve">
+        <value>正在加载日志...</value>
+    </data>
+  <data name="Options_Tabs_SupportInput" xml:space="preserve">
+        <value>Show Input Area</value>
+    </data>
+  <data name="Options_Tabs_TellTabChannelSelection" xml:space="preserve">
+        <value>Channel selection is disabled for tell tabs.</value>
+    </data>
+  <data name="Options_Tab_SetTarget" xml:space="preserve">
+        <value>Set to target</value>
     </data>
 </root>

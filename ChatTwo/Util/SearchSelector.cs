@@ -113,6 +113,9 @@ public unsafe class ListClipper : IEnumerable<(int, int)>, IDisposable
     public int CurrentRow { get; private set; }
     public int DisplayEnd => Clipper.DisplayEnd;
 
+    public ref float StartPosY => ref Clipper.StartPosY;
+    public ref float ItemsHeight => ref Clipper.ItemsHeight;
+
     public IEnumerable<int> Rows
     {
         get

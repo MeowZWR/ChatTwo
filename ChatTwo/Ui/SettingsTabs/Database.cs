@@ -11,14 +11,14 @@ using Dalamud.Game.Text;
 
 namespace ChatTwo.Ui.SettingsTabs;
 
-internal sealed class Database : ISettingsTab
+public sealed class Database : ISettingsTab
 {
     private Plugin Plugin { get; }
     private Configuration Mutable { get; }
 
     public string Name => Language.Options_Database_Tab + "###tabs-database";
 
-    internal Database(Plugin plugin, Configuration mutable)
+    public Database(Plugin plugin, Configuration mutable)
     {
         Plugin = plugin;
         Mutable = mutable;
@@ -37,6 +37,7 @@ internal sealed class Database : ISettingsTab
             ShowAdvanced = ImGui.GetIO().KeyShift;
 
         ImGuiUtil.OptionCheckbox(ref Mutable.DatabaseBattleMessages, Language.Options_DatabaseBattleMessages_Name, Language.Options_DatabaseBattleMessages_Description);
+        ImGuiUtil.OptionCheckbox(ref Mutable.DatabaseGatherCraftMessages, Language.Options_DatabaseGatherCraftMessages_Name, Language.Options_DatabaseGatherCraftMessages_Description);
         ImGui.Spacing();
 
         if (ImGuiUtil.OptionCheckbox(ref Mutable.LoadPreviousSession, Language.Options_LoadPreviousSession_Name, Language.Options_LoadPreviousSession_Description))

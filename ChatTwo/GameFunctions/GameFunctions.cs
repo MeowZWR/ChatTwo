@@ -18,7 +18,7 @@ using ValueType = FFXIVClientStructs.FFXIV.Component.GUI.AtkValueType;
 
 namespace ChatTwo.GameFunctions;
 
-internal unsafe class GameFunctions : IDisposable
+public unsafe class GameFunctions : IDisposable
 {
     #region Hooks
     [Signature("E8 ?? ?? ?? ?? 48 85 C0 0F 84 ?? ?? ?? ?? 48 8B D0 49 8D 4F", DetourName = nameof(ResolveTextCommandPlaceholderDetour))]
@@ -27,10 +27,10 @@ internal unsafe class GameFunctions : IDisposable
     #endregion
 
     private Plugin Plugin { get; }
-    internal KeybindManager KeybindManager { get; }
-    internal Chat Chat { get; }
+    public KeybindManager KeybindManager { get; }
+    public Chat Chat { get; }
 
-    internal GameFunctions(Plugin plugin)
+    public GameFunctions(Plugin plugin)
     {
         Plugin = plugin;
         KeybindManager = new KeybindManager(plugin);
@@ -51,22 +51,22 @@ internal unsafe class GameFunctions : IDisposable
         Marshal.FreeHGlobal(PlaceholderNamePtr);
     }
 
-    internal void SendFriendRequest(string name, ushort world)
+    public void SendFriendRequest(string name, ushort world)
     {
         ListCommand(name, world, "friendlist");
     }
 
-    internal void AddToBlacklist(string name, ushort world)
+    public void AddToBlacklist(string name, ushort world)
     {
         ListCommand(name, world, "blist");
     }
 
-    internal void AddToMuteList(ulong accountId, ulong contentId, string name, short worldId)
+    public void AddToMuteList(ulong accountId, ulong contentId, string name, short worldId)
     {
         AgentMutelist.Instance()->Add(accountId, contentId, name, worldId);
     }
 
-    internal void AddToTermsList(SeString content)
+    public void AddToTermsList(SeString content)
     {
         AgentTermFilter.Instance()->OpenNewFilterWindow(content.EncodeWithNullTerminator());
     }
@@ -85,7 +85,7 @@ internal unsafe class GameFunctions : IDisposable
         return addon != null && addon->IsReady ? (T*)addon : null;
     }
 
-    internal static void SetAddonInteractable(string name, bool interactable)
+    public static void SetAddonInteractable(string name, bool interactable)
     {
         var addon = GetAddon<AtkUnitBase>(name);
         if (addon == null)
@@ -93,7 +93,7 @@ internal unsafe class GameFunctions : IDisposable
         addon->IsVisible = interactable;
     }
 
-    internal static void SetChatInteractable(bool interactable)
+    public static void SetChatInteractable(bool interactable)
     {
         for (var i = 0; i < 4; i++)
             SetAddonInteractable($"ChatLogPanel_{i}", interactable);
@@ -101,13 +101,13 @@ internal unsafe class GameFunctions : IDisposable
         SetAddonInteractable("ChatLog", interactable);
     }
 
-    internal static bool IsAddonInteractable(string name)
+    public static bool IsAddonInteractable(string name)
     {
         var addon = GetAddon<AtkUnitBase>(name);
         return addon != null && addon->IsVisible;
     }
 
-    internal static void OpenItemTooltip(uint id, ItemKind itemKind)
+    public static void OpenItemTooltip(uint id, ItemKind itemKind)
     {
         var atkStage = AtkStage.Instance();
         var agent = AgentItemDetail.Instance();
@@ -136,7 +136,7 @@ internal unsafe class GameFunctions : IDisposable
         addon->Show(false, 15);
     }
 
-    internal static void CloseItemTooltip()
+    public static void CloseItemTooltip()
     {
         // hide addon first to prevent the "addon close" sound
         var addon = GetAddon<AtkUnitBase>("ItemDetail");
@@ -154,7 +154,7 @@ internal unsafe class GameFunctions : IDisposable
         }
     }
 
-    internal static void OpenPartyFinder()
+    public static void OpenPartyFinder()
     {
         // this whole method: 6.05: 84433A (FF 97 ?? ?? ?? ?? 41 B4 01)
         var lfg = AgentLookingForGroup.Instance();
@@ -176,17 +176,17 @@ internal unsafe class GameFunctions : IDisposable
         }
     }
 
-    internal static bool IsMentor()
+    public static bool IsMentor()
     {
         return PlayerState.Instance()->IsMentor();
     }
 
-    internal static InfoProxyCommonList.CharacterData[] GetFriends()
+    public static InfoProxyCommonList.CharacterData[] GetFriends()
     {
         return InfoProxyFriendList.Instance()->CharDataSpan.ToArray();
     }
 
-    internal static void OpenQuestLog(RowRef<Quest> quest)
+    public static void OpenQuestLog(RowRef<Quest> quest)
     {
         var splits = quest.Value.Id.ToString().Split("_");
         if (splits.Length != 2)
@@ -204,22 +204,22 @@ internal unsafe class GameFunctions : IDisposable
         AgentQuestJournal.Instance()->OpenForQuest(questId, 1);
     }
 
-    internal static void OpenPartyFinder(uint id)
+    public static void OpenPartyFinder(uint id)
     {
         AgentLookingForGroup.Instance()->OpenListing(id);
     }
 
-    internal static void OpenAchievement(uint id)
+    public static void OpenAchievement(uint id)
     {
         AgentAchievement.Instance()->OpenById(id);
     }
 
-    internal static bool IsInInstance()
+    public static bool IsInInstance()
     {
         return Plugin.Condition[ConditionFlag.BoundByDuty56];
     }
 
-    internal static bool TryOpenAdventurerPlate(ulong playerId)
+    public static bool TryOpenAdventurerPlate(ulong playerId)
     {
         try
         {
@@ -233,7 +233,7 @@ internal unsafe class GameFunctions : IDisposable
         }
     }
 
-    internal static void ClickNoviceNetworkButton()
+    public static void ClickNoviceNetworkButton()
     {
         var agent = AgentChatLog.Instance();
         // case 3

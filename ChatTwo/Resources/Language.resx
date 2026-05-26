@@ -1148,7 +1148,7 @@
         <value>Disable input for this channel</value>
     </data>
     <data name="Options_Tabs_SenderMessages" xml:space="preserve">
-        <value>Show all messages send by target</value>
+        <value>Show all messages sent by target</value>
     </data>
     <data name="ChatLog_DisabledInput" xml:space="preserve">
         <value>Input is disabled for this tab</value>
@@ -1405,8 +1405,8 @@
     <data name="Webinterface_UsageNotice" xml:space="preserve">
         <value>Usage Notice</value>
     </data>
-    <data name="Options_Help_SenderMessages" xml:space="preserve">
-        <value>This disables the channel selection and shows all messages coming from the target.</value>
+    <data name="Options_Help_SenderMessagesV2" xml:space="preserve">
+        <value>Shows all messages coming from the target.</value>
     </data>
     <data name="Options_Header_Target" xml:space="preserve">
         <value>Target</value>
@@ -1425,5 +1425,63 @@
     </data>
     <data name="ImGuiUtil_ChannelSelector_Target" xml:space="preserve">
         <value>Target</value>
+    </data>
+    <data name="ChannelSelector_Unselect" xml:space="preserve">
+        <value>Unselect all</value>
+    </data>
+    <data name="ChannelSelector_Select" xml:space="preserve">
+        <value>Select all</value>
+    </data>
+    <data name="Database_Migration_Error_Title" xml:space="preserve">
+        <value>Chat2 Database Migration Error</value>
+    </data>
+    <data name="Database_Migration_Error_Desc" xml:space="preserve">
+        <value>Database migration has failed, a new database will be created.
+Your old database can still be recovered, please contact the plugin author for help.</value>
+    </data>
+    <data name="DbViewer_Date_Reset_Tooltip" xml:space="preserve">
+        <value>Reset date selection.</value>
+    </data>
+    <data name="Folder_Export_Location_Tooltip" xml:space="preserve">
+        <value>Pick a folder location for export.</value>
+    </data>
+    <data name="Folder_Selection_Header" xml:space="preserve">
+        <value>Pick an export location</value>
+    </data>
+    <data name="Export_Txt_Tooltip" xml:space="preserve">
+        <value>Export the message history to a text file.</value>
+    </data>
+    <data name="Export_Json_Tooltip" xml:space="preserve">
+        <value>Export the message history to a json file.</value>
+    </data>
+    <data name="Page_ArrowLeft_Tooltip" xml:space="preserve">
+        <value>Previous page</value>
+    </data>
+    <data name="Page_ArrowRight_Tooltip" xml:space="preserve">
+        <value>Next page</value>
+    </data>
+    <data name="DatePicker_Tooltip" xml:space="preserve">
+        <value>Open date picker</value>
+    </data>
+    <data name="ChatExport_Initial" xml:space="preserve">
+        <value>Loading logs ...</value>
+    </data>
+    <data name="Options_Tabs_SupportInput" xml:space="preserve">
+        <value>Show Input Area</value>
+    </data>
+    <data name="Options_Tabs_TellTabChannelSelection" xml:space="preserve">
+        <value>Channel selection is disabled for tell tabs.</value>
+    </data>
+    <data name="Options_Tab_SetTarget" xml:space="preserve">
+        <value>Set to target</value>
+    </data>
+    <data name="Options_Tabs_ContentIdWarning" xml:space="preserve">
+        <value>Content ID not set yet, this happens after the first message is received.</value>
+    </data>
+    <data name="Options_DatabaseGatherCraftMessages_Name" xml:space="preserve">
+        <value>Save crafting and gathering messages in database</value>
+    </data>
+    <data name="Options_DatabaseGatherCraftMessages_Description" xml:space="preserve">
+        <value>If gathering and crafting messages are saved to the database, the size of the database will grow much faster, and there will be a noticeable freeze when saving settings. It is recommended to leave this disabled.</value>
     </data>
 </root>

@@ -33,11 +33,11 @@ public static class Sheets
 
     public static bool IsInForay() =>
         TerritorySheet.TryGetRow(Plugin.ClientState.TerritoryType, out var row) &&
-        row.TerritoryIntendedUse.RowId is 41 or 61;
+        row.TerritoryIntendedUse.RowId is 41 or 48 or 61;
 
     public static IEnumerable<World> WorldsOnDatacenter(IPlayerCharacter character)
     {
         var region = character.HomeWorld.Value.DataCenter.Value.Region;
-        return WorldSheet.Where(world => world.IsPublic && world.DataCenter.Value.Region == region);
+        return WorldSheet.Where(world => world.IsPublic && world.DataCenter.Value.Region.RowId == region.RowId);
     }
 }

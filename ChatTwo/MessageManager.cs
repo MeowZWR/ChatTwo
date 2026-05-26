@@ -17,12 +17,12 @@ using Lumina.Text.ReadOnly;
 
 namespace ChatTwo;
 
-internal class MessageManager : IAsyncDisposable
+public class MessageManager : IAsyncDisposable
 {
-    internal const int MessageDisplayLimit = 10_000;
+    public const int MessageDisplayLimit = 10_000;
 
     private Plugin Plugin { get; }
-    internal MessageStore Store { get; }
+    public MessageStore Store { get; }
 
     private Dictionary<ChatType, NameFormatting> Formats { get; } = [];
     private ulong LastContentId { get; set; }
@@ -41,7 +41,7 @@ internal class MessageManager : IAsyncDisposable
 
     private Hook<RaptureLogModule.Delegates.AddMsgSourceEntry>? ContentIdResolverHook { get; init; }
 
-    internal ulong CurrentContentId
+    public ulong CurrentContentId
     {
         get
         {
@@ -50,11 +50,32 @@ internal class MessageManager : IAsyncDisposable
         }
     }
 
-    internal unsafe MessageManager(Plugin plugin)
+    public unsafe MessageManager(Plugin plugin)
     {
         Plugin = plugin;
 
-        Store = new MessageStore(DatabasePath());
+        try
+        {
+            Store = new MessageStore(plugin, DatabasePath());
+        }
+        catch(Exception ex)
+        {
+            // migration failed, so we create a new database
+            if (Plugin.Config.MigrationStatus == MigrationStatus.Failed)
+            {
+                Plugin.Log.Warning("Migration failed, attempting fresh database");
+                Store = new MessageStore(plugin, DatabasePath());
+
+                Plugin.Config.MigrationStatus = MigrationStatus.Finished;
+                Plugin.SaveConfig();
+            }
+            else
+            {
+                // Something else went wrong, rethrow
+                Plugin.Log.Error(ex, "Failed to open database");
+                throw;
+            }
+        }
 
         PendingMessageThread = new Thread(() => ProcessPendingMessages(PendingThreadCancellationToken.Token));
         PendingMessageThread.Start();
@@ -89,7 +110,7 @@ internal class MessageManager : IAsyncDisposable
         Store.Dispose();
     }
 
-    internal static string DatabasePath()
+    public static string DatabasePath()
     {
         return Path.Join(Plugin.Interface.ConfigDirectory.FullName, "chat-sqlite.db");
     }
@@ -132,13 +153,13 @@ internal class MessageManager : IAsyncDisposable
         }
     }
 
-    internal void ClearAllTabs()
+    public void ClearAllTabs()
     {
         foreach (var tab in Plugin.Config.Tabs)
             tab.Clear();
     }
 
-    internal void FilterAllTabs()
+    public void FilterAllTabs()
     {
         DateTimeOffset? since = null;
         if (!Plugin.Config.FilterIncludePreviousSessions)
@@ -172,7 +193,7 @@ internal class MessageManager : IAsyncDisposable
         }
     }
 
-    internal void FilterAllTabsAsync()
+    public void FilterAllTabsAsync()
     {
         Task.Run(() =>
         {
@@ -247,15 +268,17 @@ internal class MessageManager : IAsyncDisposable
         var senderChunks = new List<Chunk>();
         if (formatting is { IsPresent: true })
         {
-            senderChunks.Add(new TextChunk(ChunkSource.None, null, formatting.Before) { FallbackColour = chatCode.Type });
+            senderChunks.Add(new TextChunk(ChunkSource.None, null, formatting.Before) { FallbackColor = chatCode.Type });
             senderChunks.AddRange(ChunkUtil.ToChunks(pendingMessage.Sender, ChunkSource.Sender, chatCode.Type));
-            senderChunks.Add(new TextChunk(ChunkSource.None, null, formatting.After) { FallbackColour = chatCode.Type });
+            senderChunks.Add(new TextChunk(ChunkSource.None, null, formatting.After) { FallbackColor = chatCode.Type });
         }
 
         var contentChunks = ChunkUtil.ToChunks(pendingMessage.Content, ChunkSource.Content, chatCode.Type).ToList();
         var message = new Message(CurrentContentId, pendingMessage.ContentId, pendingMessage.AccountId, chatCode, senderChunks, contentChunks, pendingMessage.Sender, pendingMessage.Content);
 
-        if (Plugin.Config.DatabaseBattleMessages || !message.Code.IsBattle())
+        var isBattle = message.Code.IsBattle();
+        var isCraftOrGather = message.Code.IsCraftOrGather();
+        if ((!isBattle && !isCraftOrGather) || (isBattle && Plugin.Config.DatabaseBattleMessages) || (isCraftOrGather && Plugin.Config.DatabaseGatherCraftMessages))
             Store.UpsertMessage(message);
 
         var currentTabId = Plugin.CurrentTab.Identifier;
@@ -274,18 +297,18 @@ internal class MessageManager : IAsyncDisposable
         }
     }
 
-    internal class NameFormatting
+    public class NameFormatting
     {
-        internal string Before { get; private set; } = string.Empty;
-        internal string After { get; private set; } = string.Empty;
-        internal bool IsPresent { get; private set; } = true;
+        public string Before { get; private set; } = string.Empty;
+        public string After { get; private set; } = string.Empty;
+        public bool IsPresent { get; private set; } = true;
 
-        internal static NameFormatting Empty()
+        public static NameFormatting Empty()
         {
             return new NameFormatting { IsPresent = false, };
         }
 
-        internal static NameFormatting Of(string before, string after)
+        public static NameFormatting Of(string before, string after)
         {
             return new NameFormatting
             {

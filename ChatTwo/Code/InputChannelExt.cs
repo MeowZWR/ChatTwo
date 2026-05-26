@@ -2,9 +2,9 @@ using Lumina.Excel.Sheets;
 
 namespace ChatTwo.Code;
 
-internal static class InputChannelExt
+public static class InputChannelExt
 {
-    internal static ChatType ToChatType(this InputChannel input) => input switch
+    public static ChatType ToChatType(this InputChannel input) => input switch
     {
         InputChannel.Tell => ChatType.TellOutgoing,
         InputChannel.Say => ChatType.Say,
@@ -74,15 +74,15 @@ internal static class InputChannelExt
 
     public static string Prefix(this InputChannel channel) => channel switch
     {
-        InputChannel.Tell => "/tell",
-        InputChannel.Say => "/say",
-        InputChannel.Party => "/party",
-        InputChannel.Alliance => "/alliance",
-        InputChannel.Yell => "/yell",
-        InputChannel.Shout => "/shout",
+        InputChannel.Tell => "/t",
+        InputChannel.Say => "/s",
+        InputChannel.Party => "/p",
+        InputChannel.Alliance => "/a",
+        InputChannel.Yell => "/y",
+        InputChannel.Shout => "/sh",
         InputChannel.FreeCompany => "/fc",
         InputChannel.PvpTeam => "/pt",
-        InputChannel.NoviceNetwork => "/n",
+        InputChannel.NoviceNetwork => "/b",
         InputChannel.CrossLinkshell1 => "/cwl1",
         InputChannel.CrossLinkshell2 => "/cwl2",
         InputChannel.CrossLinkshell3 => "/cwl3",
@@ -139,7 +139,7 @@ internal static class InputChannelExt
             InputChannel.Linkshell6 => [112],
             InputChannel.Linkshell7 => [113],
             InputChannel.Linkshell8 => [114],
-            _ => []
+            _ => [],
         };
 
         if (ids.Length == 0)
@@ -148,7 +148,7 @@ internal static class InputChannelExt
         return ids.Where(id => Sheets.TextCommandSheet.HasRow(id)).Select(id => Sheets.TextCommandSheet.GetRow(id));
     }
 
-    internal static bool IsLinkshell(this InputChannel channel) => channel switch
+    public static bool IsLinkshell(this InputChannel channel) => channel switch
     {
         InputChannel.Linkshell1 => true,
         InputChannel.Linkshell2 => true,
@@ -161,7 +161,7 @@ internal static class InputChannelExt
         _ => false,
     };
 
-    internal static bool IsCrossLinkshell(this InputChannel channel) => channel switch
+    public static bool IsCrossLinkshell(this InputChannel channel) => channel switch
     {
         InputChannel.CrossLinkshell1 => true,
         InputChannel.CrossLinkshell2 => true,
@@ -176,7 +176,7 @@ internal static class InputChannelExt
 
     internal static bool IsMareLinkshell(this InputChannel channel) => channel.IsExtraChatLinkshell();
 
-    internal static bool IsExtraChatLinkshell(this InputChannel channel) => channel switch
+    public static bool IsExtraChatLinkshell(this InputChannel channel) => channel switch
     {
         InputChannel.ExtraChatLinkshell1 => true,
         InputChannel.ExtraChatLinkshell2 => true,
@@ -189,7 +189,7 @@ internal static class InputChannelExt
         _ => false,
     };
 
-    internal static bool IsValid(this InputChannel channel) => channel switch
+    public static bool IsValid(this InputChannel channel) => channel switch
     {
         InputChannel.Invalid => false,
         _ => true,

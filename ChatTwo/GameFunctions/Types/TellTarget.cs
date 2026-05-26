@@ -1,5 +1,7 @@
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
+using Lumina.Text.Payloads;
+using Lumina.Text.ReadOnly;
 
 namespace ChatTwo.GameFunctions.Types;
 
@@ -8,7 +10,7 @@ public class TellTarget
 {
     public string Name { get; set; }
     public uint World { get; set; }
-    public ulong ContentId { get; private set; }
+    public ulong ContentId { get; set; }
     public TellReason Reason { get; private set; }
 
     public TellTarget(string name, uint world, ulong contentId, TellReason reason)
@@ -28,6 +30,34 @@ public class TellTarget
     public string ToTargetString()
         => $"{Name}@{ToWorldString()}";
 
+    public bool CompareNames(TellTarget other)
+    {
+        if (!other.IsSet() || !IsSet())
+            return false;
+
+        return ToTargetString().Equals(other.ToTargetString(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    public bool FromCharacterLink(ReadOnlySePayload payload)
+    {
+        if (payload.Type != ReadOnlySePayloadType.Macro || payload.MacroCode != MacroCode.Link)
+            return false;
+
+        if (!payload.TryGetExpression(out var intExpr0, out _, out var uintExpr3, out _, out var strExpr5))
+            return false;
+
+        if (!intExpr0.TryGetInt(out var linkType) || (LinkMacroPayloadType)linkType != LinkMacroPayloadType.Character)
+            return false;
+
+        if (!uintExpr3.TryGetUInt(out var worldId) || !strExpr5.TryGetString(out var linkName))
+            return false;
+
+        Name = linkName.ToString();
+        World = worldId;
+
+        return true;
+    }
+
     public unsafe void FromTarget(IPlayerCharacter target)
     {
         Name = target.Name.TextValue;
@@ -36,5 +66,7 @@ public class TellTarget
     }
 
     public static TellTarget Empty() => new(string.Empty, 0, 0, TellReason.Direct);
-    public static TellTarget From(TellTarget t) => new(t.Name, t.World, t.ContentId, t.Reason);
+
+    public TellTarget Clone()
+        => new(Name, World, ContentId, Reason);
 }

@@ -8,7 +8,7 @@ using Dalamud.Bindings.ImGui;
 
 namespace ChatTwo.Ui.SettingsTabs;
 
-internal sealed class Webinterface(Plugin plugin, Configuration mutable) : ISettingsTab
+public sealed class Webinterface(Plugin plugin, Configuration mutable) : ISettingsTab
 {
     private Plugin Plugin { get; } = plugin;
     private Configuration Mutable { get; } = mutable;
