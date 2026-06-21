@@ -41,7 +41,7 @@ public class ColorPayload
                         -1 => throw new ArgumentException("Encountered premature end of input (unexpected EOF).", nameof(v)),
                         // ReSharper disable once LocalizableElement
                         0 => throw new ArgumentException("Encountered premature end of input (unexpected null character).", nameof(v)),
-                        _ => (uint)v << shift
+                        _ => (uint)v << shift,
                     };
                 }
 
@@ -50,7 +50,7 @@ public class ColorPayload
                 if ((typeByte & 8) != 0)
                     argbValue |= ShiftAndThrowIfZero(stream.ReadByte(), 24);
                 else
-                    argbValue |= 0xff000000u;
+                    argbValue |= 0xFF000000u;
 
                 if( (typeByte & 4) != 0 ) argbValue |= ShiftAndThrowIfZero( stream.ReadByte(), 16 );
                 if( (typeByte & 2) != 0 ) argbValue |= ShiftAndThrowIfZero( stream.ReadByte(), 8 );

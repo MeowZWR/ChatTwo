@@ -8,6 +8,7 @@ using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Utility;
+using Lumina.Text.ReadOnly;
 using DalamudPartyFinderPayload = Dalamud.Game.Text.SeStringHandling.Payloads.PartyFinderPayload;
 
 namespace ChatTwo.Ui;
@@ -55,16 +56,26 @@ public class SeStringDebugger : Window
         ImGui.TextUnformatted("Sender Content");
         ImGui.Spacing();
         if (Plugin.MessageManager.LastMessage.Sender != null)
+        {
+            ImGui.TextUnformatted($"{new ReadOnlySeString(Plugin.MessageManager.LastMessage.Sender.Encode()).ToMacroString()}");
             ProcessPayloads(Plugin.MessageManager.LastMessage.Sender.Payloads);
+        }
         else
+        {
             ImGui.TextUnformatted("Nothing to show");
+        }
 
         ImGui.TextUnformatted("Message Content");
         ImGui.Spacing();
         if (Plugin.MessageManager.LastMessage.Message != null)
+        {
+            ImGui.TextUnformatted($"{new ReadOnlySeString(Plugin.MessageManager.LastMessage.Message.Encode()).ToMacroString()}");
             ProcessPayloads(Plugin.MessageManager.LastMessage.Message.Payloads);
+        }
         else
+        {
             ImGui.TextUnformatted("Nothing to show");
+        }
     }
 
     private void ProcessPayloads(List<Payload> payloads)

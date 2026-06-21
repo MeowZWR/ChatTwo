@@ -56,6 +56,14 @@ public static class ColourUtil
     /// <remarks>The game returns all GlobalValue colors as ARGB</remarks>
     public static unsafe uint ArgbToRgba(uint col)
     {
+        // Skip color with no value
+        if (col == 0)
+            return 0;
+
+        // Check if Alpha is set, if not set to 255
+        if (col <= 0x00FFFFFFu)
+            col |= 0xFF000000u;
+
         var buf = (byte*)&col;
         (buf[1], buf[2], buf[3], buf[0]) = (buf[0], buf[1], buf[2], buf[3]);
         return col;
