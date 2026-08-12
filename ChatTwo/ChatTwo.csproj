@@ -1,6 +1,6 @@
 <Project Sdk="Dalamud.NET.Sdk/15.0.0">
     <PropertyGroup>
-        <Version>1.40.4</Version>
+        <Version>1.40.6</Version>
         <ImplicitUsings>enable</ImplicitUsings>
     </PropertyGroup>
 
@@ -30,6 +30,12 @@
 
     <ItemGroup>
       <Folder Include="images\" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="SharedEmoteList.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
     </ItemGroup>
 
     <!--This doesn't work until Plogon is updated to include NodeJS-->
